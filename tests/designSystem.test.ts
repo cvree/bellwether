@@ -224,6 +224,37 @@ describe("a token used outside its scope still follows the theme", () => {
   });
 });
 
+describe("a class in the markup has a rule behind it", () => {
+  /* `.fhj-skin-row` and `.fhj-skin-swatch` were class names with nothing
+     behind them. The Fitzpatrick picker in Settings — six options, one of
+     which has to look chosen — rendered as six lines of centred naked text
+     with no card, no border and no selected state, and the swatch that was
+     supposed to show each skin tone was a 0x0 span. `aria-pressed` and
+     `data-on` were both set on the row and neither could be seen. */
+  it("styles every fhj- class the components use", () => {
+    /* Only what lands in a `className`. The same prefix is also used for
+       element ids (`htmlFor`, `aria-describedby`) and for storage keys, and
+       neither wants a rule. */
+    const used = new Set<string>();
+    for (const src of [app, firstRun, appearance])
+      for (const m of src.matchAll(/className=(?:"([^"]*)"|\{["`]([^"`]*)["`])/g))
+        for (const cls of (m[1] ?? m[2]).split(/\s+/))
+          if (/^fhj-[a-z0-9-]+$/.test(cls)) used.add(cls);
+    const missing = [...used].filter((c) => !css.includes(`.${c}`)).sort();
+    expect(missing).toEqual([]);
+  });
+
+  it("draws the skin picker as a row you can see the state of", () => {
+    const i = css.indexOf("\n.fhj-skin-row {");
+    expect(i, ".fhj-skin-row should have a rule").toBeGreaterThan(-1);
+    expect(css.slice(i, css.indexOf("}", i))).toContain("min-height: var(--fhj-tap)");
+    expect(css).toContain(".fhj-skin-row[data-on]");
+    // One tone per Fitzpatrick type, or a swatch is blank for somebody.
+    for (const t of [1, 2, 3, 4, 5, 6])
+      expect(css, `swatch for type ${t}`).toContain(`.fhj-skin-swatch[data-type="${t}"]`);
+  });
+});
+
 describe("spacing is written in whole pixels", () => {
   /* A rem is 16px, so the file writes spacing as sixteenths — 0.375rem is 6px,
      0.8125rem is 13px — and a value that lands between two pixels is a soft

@@ -1349,6 +1349,19 @@ button.fhj-section:disabled {
   line-height: 1.45;
 }
 
+/* The weather behind a day, beside its date in the history list: a glyph and a
+   temperature that have to read as one thing. Unstyled they sat flush against
+   each other, baseline-aligned, so a cloud and "18" looked like one glyph. */
+.fhj-hist-ctx {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: none;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fhj-subtle, #9a9ca6);
+}
+
 /* ---------- AI provenance ----------
    Every value a model produced is lavender and says so. The rule this enforces
    is that the user can always tell their own number from an estimated one. */
@@ -3481,7 +3494,11 @@ button.fhj-section:disabled {
   appearance: none;
   display: block;
   width: 100%;
-  height: 22px;
+  /* The painted parts are a 14px track and a 22px thumb; the *element* is the
+     drag target, and at 22px it was half a thumb tall. The extra height is
+     transparent and the track stays centred in it, so nothing looks different
+     and the whole band takes the drag. */
+  height: var(--fhj-tap);
   background: transparent;
   cursor: pointer;
 }
@@ -8322,6 +8339,72 @@ button.fhj-section:disabled {
   }
 }
 
+/* ---- the skin-type picker ----
+
+   `.fhj-skin-row` and `.fhj-skin-swatch` were class names with nothing behind
+   them. Six Fitzpatrick options rendered as six lines of centred naked text: no
+   card, no border, no left alignment, no press feel, 37px rows — and, because
+   the swatch had no rule either, a 0x0 span where the skin tone was supposed to
+   be. `aria-pressed` and `data-on` were both set and neither could be seen, so
+   the one thing the control had to tell you — which of the six you had picked —
+   was the one thing it did not.
+
+   Built here in the row idiom the rest of the app already uses: `.fhj-sr-example`
+   for the shape, the accent-soft-on-accent-line pair for the chosen one. */
+
+.fhj-skin-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: var(--fhj-tap);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-radius: var(--fhj-radius);
+  background: var(--fhj-card, #1e2026);
+  border: var(--fhj-bw) solid var(--fhj-line, #31343d);
+  color: var(--fhj-ink, #ecebe7);
+  cursor: pointer;
+  transition: background-color var(--fhj-quick) ease, border-color var(--fhj-quick) ease,
+    transform var(--fhj-quick) var(--fhj-out), box-shadow var(--fhj-quick) var(--fhj-out);
+}
+@media (hover: hover) {
+  .fhj-skin-row:hover:not([data-on]) {
+    background: var(--fhj-card-hover, #25272e);
+    border-color: var(--fhj-line-strong, #464a55);
+  }
+}
+.fhj-skin-row[data-on] {
+  background: var(--fhj-accent-soft, rgba(143, 176, 227, 0.15));
+  border-color: var(--fhj-accent, #8fb0e3);
+  box-shadow: var(--fhj-shadow-pop, 3px 3px 0 rgba(0, 0, 0, 0.55));
+}
+.fhj-skin-row[data-on]:active {
+  transform: translate(var(--fhj-press), var(--fhj-press));
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+.fhj-skin-row:not([data-on]):active {
+  transform: scale(0.995);
+}
+
+/* The tone itself, which is the fastest way to answer a question about your
+   own skin. A ring rather than a bare disc: type 1 is nearly the colour of the
+   light theme's paper and would otherwise vanish into the row. */
+.fhj-skin-swatch {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: var(--fhj-radius-pill);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.28);
+  background: var(--tone);
+}
+.fhj-skin-swatch[data-type="1"] { --tone: #F5DFD0; }
+.fhj-skin-swatch[data-type="2"] { --tone: #EBC8A9; }
+.fhj-skin-swatch[data-type="3"] { --tone: #D8A97C; }
+.fhj-skin-swatch[data-type="4"] { --tone: #B57F52; }
+.fhj-skin-swatch[data-type="5"] { --tone: #83543A; }
+.fhj-skin-swatch[data-type="6"] { --tone: #4A2F22; }
+
 /* ---- the idle screen ---- */
 
 .fhj-sun-facts {
@@ -8388,6 +8471,28 @@ button.fhj-section:disabled {
 /* Never smaller than the surrounding caption text, and never dressed as a
    footnote — the moment this line stops being read is the moment somebody
    starts treating an estimate as a blood test. */
+/* "Outside today" on the Today card: a block of text and the button that acts
+   on it, side by side. The class was in the markup with no rule behind it, so
+   the div stayed a block and the button dropped onto its own line under the
+   sentence it belongs to. The value under the eyebrow was body text where
+   every other `-val` in this file is the number you are meant to read. */
+.fhj-today-sun {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.fhj-today-sun > div {
+  min-width: 0;
+}
+.fhj-today-sun-val {
+  margin-top: 0.125rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--fhj-ink, #ecebe7);
+  font-variant-numeric: tabular-nums;
+}
+
 .fhj-sun-iu-note {
   font-size: 0.6875rem;
   line-height: 1.5;

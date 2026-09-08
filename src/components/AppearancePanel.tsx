@@ -295,6 +295,9 @@ export default function AppearancePanel({ onChoice }: { onChoice?: () => void })
       {(hue !== DEFAULT_HUE || night || backdrop !== "fog" || theme !== "dark") && (
         <button
           type="button"
+          /* 12px of underlined text is an 18px box however much it looks like
+             a link. The ink stays; the target underneath it does not. */
+          className="fhj-tap-floor"
           onClick={() => {
             setHue(DEFAULT_HUE);
             setNightLight(false);

@@ -6453,7 +6453,7 @@ function HistoryScreen({
       )}
 
       {traceRows.length > 4 && (
-        <div className="fhj-hist-trace mt-4">
+        <div className="mt-4">
           <div className="fhj-eyebrow">The weather behind your days</div>
           <TempTrace rows={traceRows} highlight={lit?.dates} markDate={todayStr()} />
         </div>
@@ -8870,7 +8870,7 @@ function ReminderCard({ profile, onSave }) {
               <button type="button" role="switch" aria-checked={r.enabled}
                 aria-label={`${r.label} reminder`}
                 onClick={() => patch(r.id, { enabled: !r.enabled })}
-                className="shrink-0">
+                className="fhj-tap-floor shrink-0">
                 <span className={"fhj-switch" + (r.enabled ? " is-on" : "")} />
               </button>
               <input
@@ -9015,7 +9015,7 @@ function GoalsCard({ goals, onSave }) {
         <label key={n.k} className="flex items-center gap-2.5 py-1.5">
           <span className="text-xs flex-1 min-w-0" style={{ color: C.sub }}>{n.label}</span>
           <input type="number" inputMode="numeric" className="fhj-input" placeholder="none"
-            style={{ width: "6rem", minHeight: 38, padding: "0.375rem 0.5rem", textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+            style={{ width: "6rem", padding: "0.375rem 0.5rem", textAlign: "right", fontVariantNumeric: "tabular-nums" }}
             aria-label={`daily ${n.label} target in ${n.unit}`}
             value={draft[n.k] == null ? "" : String(draft[n.k])}
             onChange={(e) => set(n.k, e.target.value)} />
@@ -9193,7 +9193,7 @@ function DataDurabilityCard({ db, setDb }) {
               if (!ids.length) return null;
               return (
                 <button key={days} onClick={() => freeSpace(days, label)} disabled={!!busy}
-                  className="w-full py-2.5 px-3.5 rounded-xl text-left flex items-center justify-between gap-3 disabled:opacity-50"
+                  className="w-full min-h-[var(--fhj-tap)] py-3 px-3.5 rounded-xl text-left flex items-center justify-between gap-3 disabled:opacity-50"
                   style={{ background: C.faint }}>
                   <span className="text-[13px] font-medium min-w-0">Delete photos {label}</span>
                   <span className="text-[11.5px] shrink-0 tabular-nums whitespace-nowrap" style={{ color: C.subtle }}>
@@ -9968,7 +9968,7 @@ function SettingsScreen({ db, setDb, goHome, goSetup, goImport, goNoteImport, go
                           FB.prefs = { ...prefs, hapticStrength: v };
                           feedback("save");
                         }}
-                        className="flex-1 py-2 rounded-lg text-[11.5px] font-semibold"
+                        className="fhj-tap-floor flex-1 py-2 rounded-lg text-[11.5px] font-semibold"
                         style={{
                           background: active ? C.accent : "transparent",
                           color: active ? C.onAccent : C.sub,
@@ -10000,10 +10000,10 @@ function SettingsScreen({ db, setDb, goHome, goSetup, goImport, goNoteImport, go
           label="Sounds"
           desc="Soft taps, a warm note when something saves, and a small chord when the day's journal is done. Quiet by design." />
         {prefs.sound !== false && (
-          <div className="flex flex-wrap gap-1.5 pb-3 -mt-1">
+          <div className="flex flex-wrap gap-x-1.5 gap-y-2.5 pb-3 -mt-1">
             {[["tap", "Tap"], ["save", "Save"], ["quickadd", "Quick Add"], ["complete", "Finish"]].map(([v, l]) => (
               <button key={v} type="button" onClick={() => feedback(v)}
-                className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                className="fhj-tap-floor px-2.5 py-1 rounded-full text-[11px] font-semibold"
                 style={{ background: "transparent", color: C.sub, border: `1px solid ${C.lineStrong}` }}>
                 {l}
               </button>
@@ -10338,7 +10338,7 @@ function AutomationsCard({ profile, hasLocation, onSet }) {
                   role="switch"
                   aria-checked={on}
                   aria-label={a.label}
-                  className={"fhj-switch" + (on ? " is-on" : "")}
+                  className={"fhj-tap-floor fhj-switch" + (on ? " is-on" : "")}
                   onClick={() => { feedback("select"); onSet(a.id, !on); }}
                 >
                   <span />
@@ -10963,7 +10963,7 @@ function EditSetupScreen({ profile, entries = [], onSave, goBack }) {
               <div className="flex gap-1" role="group" aria-label="Group questions by">
                 {[["category", "Subject"], ["pack", "Pack"]].map(([v, l]) => (
                   <button key={v} type="button" onClick={() => chooseGroupBy(v)} aria-pressed={groupBy === v}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                    className="fhj-tap-floor px-2.5 py-1 rounded-full text-[11px] font-semibold"
                     style={groupBy === v
                       ? { background: C.accent, color: C.onAccent, border: `1px solid ${C.accent}` }
                       : { background: "transparent", color: C.sub, border: `1px solid ${C.lineStrong}` }}>
@@ -11051,7 +11051,7 @@ function EditSetupScreen({ profile, entries = [], onSave, goBack }) {
                 </div>
                 <button onClick={() => { toggleField(f.k); feedback(on ? "toggleOff" : "toggleOn"); }}
                   role="switch" aria-checked={on}
-                  className="flex-1 min-w-0 text-left flex items-center gap-2.5 py-1">
+                  className="fhj-tap-floor flex-1 min-w-0 text-left flex items-center gap-2.5 py-1">
                   <span className="w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0"
                     style={on
                       ? { background: C.accent }
@@ -11080,14 +11080,14 @@ function EditSetupScreen({ profile, entries = [], onSave, goBack }) {
                 )}
               </div>
               <div className="px-3 pb-3">
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-x-1.5 gap-y-2.5">
                   {VISIBILITY_FLAGS.map(([flag, label]) => {
                     const flagOn = getFlag(f, flag);
                     return (
                       <button key={flag} onClick={() => { feedback(flagOn ? "toggleOff" : "toggleOn"); toggleFlag(f, flag); }}
                         aria-pressed={flagOn}
                         aria-label={`${f.label}: ${flagOn ? "shown in" : "hidden from"} ${label}`}
-                        className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                        className="fhj-tap-floor px-2.5 py-1 rounded-full text-[11px] font-semibold"
                         style={flagOn
                           ? { background: C.faint, color: C.ink, border: "1px solid transparent" }
                           : { background: "transparent", color: C.subtle, border: `1px dashed ${C.lineStrong}` }}>
@@ -11098,7 +11098,7 @@ function EditSetupScreen({ profile, entries = [], onSave, goBack }) {
                   {f.type === "photo" && (
                     <button onClick={() => setPhotoOpen(photoOpen === f.k ? null : f.k)}
                       aria-expanded={photoOpen === f.k}
-                      className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                      className="fhj-tap-floor px-2.5 py-1 rounded-full text-[11px] font-semibold"
                       style={photoOpen === f.k
                         ? { background: C.accent, color: C.onAccent, border: `1px solid ${C.accent}` }
                         : { background: "transparent", color: C.sub, border: `1px solid ${C.lineStrong}` }}>
