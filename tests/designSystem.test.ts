@@ -153,6 +153,28 @@ describe("one segmented control, not two", () => {
   });
 });
 
+describe("spacing is written in whole pixels", () => {
+  /* A rem is 16px, so the file writes spacing as sixteenths — 0.375rem is 6px,
+     0.8125rem is 13px — and a value that lands between two pixels is a soft
+     edge in exchange for nothing. Fifteen declarations broke that, and eleven
+     of them were in one component: the thumb navigation had been written in
+     tenths of a rem, so the bar across the bottom of every screen was measured
+     in a different unit from everything above it. */
+  it("uses no spacing value that lands off the pixel grid", () => {
+    const strays: string[] = [];
+    const re = /(^|\n)([^\n{}]*?(?:padding|margin|gap)[a-z-]*:\s*[^;]+);/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(css))) {
+      for (const v of m[2].match(/[\d.]+rem/g) || []) {
+        const px = parseFloat(v) * 16;
+        // 1.5px is a legitimate optical nudge; anything else must be whole.
+        if (Math.abs(px - Math.round(px)) > 1e-6 && px !== 1.5) strays.push(`${m[2].trim()} → ${v} = ${px}px`);
+      }
+    }
+    expect(strays).toEqual([]);
+  });
+});
+
 describe("the scales that already exist are the ones that get used", () => {
   it("writes a pill radius as the token, not as 999px", () => {
     /* 24 of these. The token was right there. */

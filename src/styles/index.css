@@ -35,7 +35,22 @@
 
   /* One spacing scale, so "breathing room" means the same thing everywhere.
      Nudged up from the previous scale: "generous spacing" is the single
-     cheapest thing that separates a calm product from a dense one. */
+     cheapest thing that separates a calm product from a dense one.
+
+     These five name the gaps between *sections*. Inside a component the file
+     writes the number, and it writes it as a sixteenth — 0.375rem is 6px,
+     0.8125rem is 13px — because a rem is 16px and a spacing value that lands
+     between two pixels is a soft edge for nothing.
+
+     That convention held for every value but fifteen, and eleven of those
+     fifteen were in one place: the thumb navigation had been written in tenths
+     of a rem, so the bar across the bottom of every screen was measured in a
+     different unit from everything above it. 0.4rem is 6.4px, 0.9rem is
+     14.4px. They are sixteenths now, none of them moving more than 0.4px.
+
+     The destination fan is the deliberate exception. Its offsets are positions
+     on an arc and they carry relationships — `left` is half of `width` — so
+     they are left as the arithmetic that produced them. */
   --fhj-gap-xs: 0.375rem;
   --fhj-gap-sm: 0.625rem;
   --fhj-gap: 1rem;
@@ -3414,7 +3429,7 @@ button.fhj-section:disabled {
   aspect-ratio: 4 / 3;
   border-radius: 0.5rem;
   overflow: hidden;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.375rem;
 }
 .fhj-backdrop-choice-flat {
   position: absolute;
@@ -4094,7 +4109,7 @@ button.fhj-section:disabled {
   top: 0;
   transform: translate(-50%, -140%);
   z-index: 60;
-  padding: 0.6rem 1.1rem;
+  padding: 0.625rem 1.125rem;
   border-radius: 0 0 var(--fhj-radius) var(--fhj-radius);
   background: var(--fhj-accent, #8fb0e3);
   color: var(--fhj-on-accent, #fff);
@@ -4256,7 +4271,7 @@ button.fhj-section:disabled {
 .fhj-fr-node {
   position: absolute;
   left: -1.55rem;
-  top: 1.15rem;
+  top: 1.125rem;
   width: 0.625rem;
   height: 0.625rem;
   border-radius: 50%;
@@ -5233,7 +5248,7 @@ button.fhj-section:disabled {
   width: 0.625rem;
   height: 0.625rem;
   left: -1.375rem;
-  top: 0.9rem;
+  top: 0.875rem;
 }
 
 .fhj-fr-card.is-landed {
@@ -9430,7 +9445,7 @@ button.fhj-section:disabled {
   gap: 0.25rem;
   max-width: 28rem;
   margin-inline: auto;
-  padding: 0.3rem;
+  padding: 0.3125rem;
   pointer-events: auto;
   border-radius: var(--fhj-radius-lg);
   border: var(--fhj-bw) solid var(--fhj-line, #31343d);
@@ -9463,10 +9478,10 @@ button.fhj-section:disabled {
   z-index: 29;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.375rem;
   white-space: nowrap;
   min-height: var(--fhj-tap);
-  padding: 0.4rem 0.8rem;
+  padding: 0.375rem 0.8125rem;
   border-radius: var(--fhj-radius-pill);
   font-size: 12px;
   font-weight: 600;
@@ -9522,8 +9537,8 @@ button.fhj-section:disabled {
 .fhj-thumb-backrow {
   display: flex;
   max-width: 28rem;
-  margin: 0 auto 0.4rem;
-  padding: 0 0.3rem;
+  margin: 0 auto 0.375rem;
+  padding: 0 0.3125rem;
   pointer-events: none;
 }
 .fhj-thumb-backrow[data-hand="right"] {
@@ -9537,10 +9552,10 @@ button.fhj-section:disabled {
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.3125rem;
   max-width: 60%;
   min-height: var(--fhj-tap);
-  padding: 0 0.9rem 0 0.6rem;
+  padding: 0 0.875rem 0 0.625rem;
   border-radius: var(--fhj-radius-pill);
   font-size: 12.5px;
   font-weight: 700;
@@ -9611,7 +9626,7 @@ button.fhj-section:disabled {
 .fhj-thumb-tab::before {
   content: "";
   position: absolute;
-  top: 0.3rem;
+  top: 0.3125rem;
   width: 0;
   height: 2px;
   border-radius: var(--fhj-radius-pill);
@@ -9862,7 +9877,7 @@ button.fhj-section:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.3125rem;
   text-align: center;
   pointer-events: none;
   animation: fhjFanRead var(--fhj-ease) var(--fhj-out) both 60ms;
@@ -9906,7 +9921,7 @@ button.fhj-section:disabled {
 }
 
 .fhj-fan-hand {
-  padding: 0.35rem 0.8rem;
+  padding: 0.375rem 0.8125rem;
   border-radius: var(--fhj-radius-pill);
   font-size: 11px;
   font-weight: 700;
@@ -9959,7 +9974,7 @@ button.fhj-section:disabled {
 .fhj-edgeback-puck {
   display: grid;
   place-items: center;
-  width: calc(2.25rem + var(--ep, 0) * 0.9rem);
+  width: calc(2.25rem + var(--ep, 0) * 0.875rem);
   height: calc(2.75rem + var(--ep, 0) * 1.6rem);
   border-radius: var(--fhj-radius-pill);
   color: var(--fhj-on-accent, #121419);
