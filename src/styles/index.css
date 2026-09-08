@@ -109,6 +109,23 @@
   --fhj-out: cubic-bezier(0.22, 1, 0.36, 1);
   --fhj-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
+  /* The category tint, defaulted.
+
+     `.fhj-cat-food`, `.fhj-cat-bowel` and the four others set this trio to say
+     "this card is a meal" in colour before a word of it is read. What none of
+     them could do is cover the rules that use the trio *outside* a category —
+     the search screen's syntax examples, its kind chips, six rules in all —
+     which fell through to the literal in the `var()` fallback. That literal is
+     the dark palette, so on paper the search examples were drawn in dark-theme
+     blue at 1.75:1: technically present, actually invisible.
+
+     A fallback is for a cold start, not for a whole screen. Defaulting the
+     trio to the accent here means an uncategorised surface gets the theme's
+     own colour, and the six scopes still override it exactly as before. */
+  --fhj-mark: var(--fhj-accent, #8fb0e3);
+  --fhj-tint-soft: var(--fhj-accent-soft, rgba(143, 176, 227, 0.15));
+  --fhj-tint-text: var(--fhj-accent-text, #a6c3ea);
+
   /* Minimum comfortable tap target. */
   --fhj-tap: 44px;
 
@@ -956,8 +973,8 @@ textarea.fhj-input {
 /* "Something needs you" — distinct from danger, which means something went
    wrong. A sync waiting on a passphrase is neither an error nor fine. */
 .fhj-badge-warn {
-  background: var(--fhj-warn-soft, rgba(214, 168, 106, 0.15));
-  color: var(--fhj-warn, #d6a86a);
+  background: color-mix(in srgb, var(--fhj-warn, #dcbb78) 15%, transparent);
+  color: var(--fhj-warn, #dcbb78);
 }
 
 /* A form label. Small, quiet, and always directly above its field — the app
@@ -2183,7 +2200,7 @@ button.fhj-section:disabled {
   font-size: 0.5625rem;
   line-height: 1;
   font-weight: 600;
-  color: var(--fhj-muted, #74767f);
+  color: var(--fhj-subtle, #9a9ca6);
 }
 
 .fhj-streak {
@@ -2417,7 +2434,7 @@ button.fhj-section:disabled {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--fhj-muted, #74767f);
+  color: var(--fhj-subtle, #9a9ca6);
   vertical-align: 2px;
 }
 .fhj-step-hint {
@@ -2708,7 +2725,7 @@ button.fhj-section:disabled {
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--fhj-muted, #74767f);
+  color: var(--fhj-subtle, #9a9ca6);
 }
 
 .fhj-ritual-manage {
@@ -2764,7 +2781,7 @@ button.fhj-section:disabled {
   border: var(--fhj-bw) solid transparent;
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--fhj-muted, #74767f);
+  color: var(--fhj-subtle, #9a9ca6);
   cursor: pointer;
 }
 .fhj-day-btn.is-on {
@@ -3495,7 +3512,7 @@ button.fhj-section:disabled {
   height: 22px;
   margin-top: -5px;
   border-radius: var(--fhj-radius-pill);
-  background: var(--fhj-thumb, #8fb0e3);
+  background: var(--fhj-accent, #8fb0e3);
   border: 2px solid var(--fhj-bg, #141519);
   box-shadow: 0 0 0 1.5px var(--fhj-line-strong, #464a55);
 }
@@ -3503,7 +3520,7 @@ button.fhj-section:disabled {
   width: 20px;
   height: 20px;
   border-radius: var(--fhj-radius-pill);
-  background: var(--fhj-thumb, #8fb0e3);
+  background: var(--fhj-accent, #8fb0e3);
   border: 2px solid var(--fhj-bg, #141519);
   box-shadow: 0 0 0 1.5px var(--fhj-line-strong, #464a55);
 }
@@ -4719,7 +4736,7 @@ button.fhj-section:disabled {
 .fhj-fr-rung.is-picked {
   background: var(--fhj-rung);
   border-color: var(--fhj-rung);
-  color: var(--fhj-on-rung, #121419);
+  color: var(--fhj-on-rung, var(--fhj-on-accent, #121419));
   box-shadow: var(--fhj-shadow-pop, 3px 3px 0 rgba(0, 0, 0, 0.5));
 }
 
@@ -5560,7 +5577,7 @@ button.fhj-section:disabled {
   justify-content: space-between;
   gap: 0.5rem;
   font-size: 0.6875rem;
-  color: var(--fhj-muted, #787b86);
+  color: var(--fhj-subtle, #9a9ca6);
   font-variant-numeric: tabular-nums;
 }
 
@@ -5610,7 +5627,7 @@ button.fhj-section:disabled {
   flex-wrap: wrap;
   gap: 0.25rem 0.625rem;
   font-size: 0.6875rem;
-  color: var(--fhj-muted, #787b86);
+  color: var(--fhj-subtle, #9a9ca6);
 }
 .fhj-fr-letter-meta > span.is-set {
   color: var(--fhj-accent-text, #a6c3ea);
@@ -5823,7 +5840,7 @@ button.fhj-section:disabled {
   justify-content: space-between;
   margin-top: 0.25rem;
   font-size: 0.5625rem;
-  color: var(--fhj-muted, #787b86);
+  color: var(--fhj-subtle, #9a9ca6);
 }
 
 .fhj-fr-pv-yn {
@@ -5866,7 +5883,7 @@ button.fhj-section:disabled {
   padding: 0.4375rem 0.625rem;
   border-radius: var(--fhj-radius-sm);
   font-size: 0.75rem;
-  color: var(--fhj-muted, #787b86);
+  color: var(--fhj-subtle, #9a9ca6);
   background: var(--fhj-faint, #2a2d35);
   border: 1px dashed var(--fhj-line-strong, #464a55);
 }
@@ -6595,7 +6612,7 @@ button.fhj-section:disabled {
 .fhj-fr-plan-when > span {
   font-size: 0.6875rem;
   line-height: 1.3;
-  color: var(--fhj-muted, #787b86);
+  color: var(--fhj-subtle, #9a9ca6);
 }
 
 .fhj-fr-plan-body { min-width: 0; }
@@ -6644,7 +6661,7 @@ button.fhj-section:disabled {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.6875rem;
   line-height: 1.35;
-  color: var(--fhj-muted, #787b86);
+  color: var(--fhj-subtle, #9a9ca6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -6688,7 +6705,7 @@ button.fhj-section:disabled {
 .fhj-fr-import-label > span {
   display: block;
   font-size: 0.625rem;
-  color: var(--fhj-muted, #787b86);
+  color: var(--fhj-subtle, #9a9ca6);
 }
 
 /* ============================================================
@@ -6901,7 +6918,7 @@ button.fhj-section:disabled {
      dark ink here read at 3.3:1 on light's #B54039 while the same rule read at
      7.2:1 in dark. `readableInk` picks the side that wins, the way the Bristol
      step scale has always done it; the fallback is the dark-theme answer. */
-  color: var(--fhj-on-rung, #121419);
+  color: var(--fhj-on-rung, var(--fhj-on-accent, #121419));
   font-weight: 700;
   box-shadow: var(--fhj-shadow-pop, 3px 3px 0 rgba(0, 0, 0, 0.5));
 }
@@ -10018,7 +10035,7 @@ button.fhj-section:disabled {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--fhj-muted, #787b86);
+  color: var(--fhj-subtle, #9a9ca6);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -11839,7 +11856,7 @@ button.fhj-section:disabled {
   font-size: 0.6875rem;
   line-height: 1.55;
   text-align: center;
-  color: var(--fhj-muted, #787b86);
+  color: var(--fhj-subtle, #9a9ca6);
 }
 
 .fhj-aic-done-mark {

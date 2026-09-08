@@ -1623,7 +1623,7 @@ function StepScale({ options, value, onChange, label, tint, lowLabel, highLabel 
             {current.desc && <span style={{ color: C.subtle }}> — {current.desc}</span>}
           </>
         ) : (
-          <span style={{ color: C.muted }}>Not recorded</span>
+          <span style={{ color: C.subtle }}>Not recorded</span>
         )}
       </div>
     </div>
@@ -9019,7 +9019,7 @@ function GoalsCard({ goals, onSave }) {
             aria-label={`daily ${n.label} target in ${n.unit}`}
             value={draft[n.k] == null ? "" : String(draft[n.k])}
             onChange={(e) => set(n.k, e.target.value)} />
-          <span className="text-[11px] w-8 shrink-0" style={{ color: C.muted }}>{n.unit}</span>
+          <span className="text-[11px] w-8 shrink-0" style={{ color: C.subtle }}>{n.unit}</span>
         </label>
       ))}
       <p className="text-[10.5px] leading-relaxed mt-2" style={{ color: C.subtle }}>
@@ -11873,7 +11873,7 @@ function ABSlider({ a, b, ratingLabel, onClose }) {
       </div>
       <input type="range" min={0} max={100} value={pos} onChange={(e) => setPos(Number(e.target.value))}
         aria-label="comparison divider position" className="w-full mt-3" />
-      <div className="flex justify-between text-[11px] mt-2" style={{ color: C.muted }}>
+      <div className="flex justify-between text-[11px] mt-2" style={{ color: C.subtle }}>
         <span>Left: {fmtNice(a.date)}{a.rating != null ? `, rated ${a.rating}` : ""}</span>
         <span>Right: {fmtNice(b.date)}{b.rating != null ? `, rated ${b.rating}` : ""}</span>
       </div>
@@ -13126,7 +13126,7 @@ function NutrientRow({ nutrient, value, source, onChange }) {
           const n = Number(raw);
           if (isFinite(n) && n >= 0) onChange(n);
         }} />
-      <span className="text-[11px] w-8 shrink-0" style={{ color: C.muted }}>{def.unit}</span>
+      <span className="text-[11px] w-8 shrink-0" style={{ color: C.subtle }}>{def.unit}</span>
     </label>
   );
 }

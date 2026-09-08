@@ -21,6 +21,7 @@ const css = read("src/styles/index.css");
 const app = read("src/App.tsx");
 const firstRun = read("src/components/FirstRun.tsx");
 const appearance = read("src/components/AppearancePanel.tsx");
+const theme = read("src/lib/theme.ts");
 
 /** Every `transition:` / `animation:` value in the file, with its property. */
 function motionDeclarations(): { prop: string; value: string }[] {
@@ -150,6 +151,76 @@ describe("one segmented control, not two", () => {
     const i = css.indexOf("\n.fhj-segment {");
     expect(css.slice(i, css.indexOf("}", i))).toContain("white-space: nowrap");
     expect(app).toContain('{ value: "365", label: "1 year", prose: "last 12 months", days: 365 },');
+  });
+});
+
+describe("muted is the placeholder colour, not a fourth shade of text", () => {
+  /* The ink ramp is ink > sub > subtle > muted, and light's `muted` carries a
+     comment saying it was solved to clear 3:1 on `faint` — the placeholder
+     bar. It does not clear the 4.5:1 body text needs on any surface in either
+     theme: measured 3.17-4.32:1 across card, faint and page. Thirteen rules
+     and four call sites were using it for content anyway — the unit beside a
+     dose, the day initials over the week strip, the labels saying which photo
+     is which side of the comparison slider.
+
+     What may keep it is what it was tuned for: ghost text in an empty field,
+     an `is-unset` value, the strike on a done step, and `.fhj-tune-of`, which
+     is 24px and so is held to the 3:1 large-text bar it already clears. */
+  const ALLOWED = /::placeholder|is-empty|is-unset|is-done|fhj-tune-of/;
+
+  it("colours nothing readable in the stylesheet", () => {
+    const lines = css.split("\n");
+    const strays: string[] = [];
+    lines.forEach((line, i) => {
+      if (!/(^|\s)color:\s*var\(--fhj-muted/.test(line)) return;
+      let sel = "?";
+      for (let j = i; j >= 0 && j > i - 40; j--) {
+        const t = lines[j];
+        if (t.includes("{") && !t.trim().startsWith("/*") && !t.trim().startsWith("*") && !t.split("{")[0].includes("@")) {
+          sel = t.split("{")[0].trim();
+          break;
+        }
+      }
+      if (!ALLOWED.test(sel)) strays.push(`${sel} (line ${i + 1})`);
+    });
+    expect(strays).toEqual([]);
+  });
+
+  it("colours nothing readable from the components either", () => {
+    expect(app).not.toMatch(/color:\s*C\.muted/);
+    expect(firstRun).not.toMatch(/color:\s*C\.muted/);
+  });
+});
+
+describe("a token used outside its scope still follows the theme", () => {
+  /* `--fhj-tint-text` and `--fhj-tint-soft` were set only inside the six
+     `.fhj-cat-*` scopes, so every rule that used them elsewhere — the search
+     screen's syntax examples and kind chips — fell through to the literal in
+     the `var()` fallback. That literal is the dark palette, so on paper those
+     examples were dark-theme blue on cream at 1.75:1. `--fhj-thumb` was never
+     defined at all, which left the control for *choosing an accent* painting
+     the dark theme's accent whatever you chose. */
+  it("gives the category tint a root default", () => {
+    const root = css.slice(css.indexOf(":root {"), css.indexOf("/* ---------- base"));
+    for (const t of ["--fhj-mark", "--fhj-tint-soft", "--fhj-tint-text"]) {
+      expect(root, `${t} should default at :root`).toContain(`${t}: var(--fhj-accent`);
+    }
+  });
+
+  it("leaves no colour token undefined behind a literal fallback", () => {
+    const root = css.slice(css.indexOf(":root {"), css.indexOf("/* ---------- base"));
+    const painted = new Set<string>();
+    for (const m of theme.matchAll(/^\s{2}([a-zA-Z][a-zA-Z0-9]*):\s*["']/gm))
+      painted.add("--fhj-" + m[1].replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()));
+    for (const m of root.matchAll(/(--fhj-[a-z0-9-]+):/g)) painted.add(m[1]);
+
+    const strays = new Set<string>();
+    for (const m of css.matchAll(/var\((--fhj-[a-z0-9-]+),\s*(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))\s*\)/g)) {
+      // A token React sets inline per element is legitimately absent here.
+      if (m[1] === "--fhj-rung" || m[1] === "--fhj-on-rung" || m[1] === "--fhj-knob") continue;
+      if (!painted.has(m[1])) strays.add(m[1]);
+    }
+    expect([...strays]).toEqual([]);
   });
 });
 

@@ -74,6 +74,19 @@ export const NIGHT_HUE_MAX = 52;
    Accent fills always carry `onAccent` text; `accentText` is the separate,
    contrast-checked value for accent-coloured *text* on a page background.
 
+   The ink ramp is ink > sub > subtle > muted, and the last step is not a
+   fourth shade of text. `muted` is the *placeholder* colour and is solved to
+   the 3:1 bar that placeholders and disabled states are held to — it does not
+   clear the 4.5:1 that body text needs, on any surface, in either theme
+   (measured 3.17-4.32:1 across card, faint and page). So `subtle` is the
+   quietest colour anything readable may be set in; `muted` belongs to ghost
+   text in an empty field, an `is-unset` value and a struck-through done step,
+   where the point is that there is nothing there yet.
+
+   Thirteen rules and four call sites had it colouring real content — the unit
+   beside a dose, the day initials over the week strip, the labels saying which
+   photo is on which side of the comparison slider. They are `subtle` now.
+
    In dark mode the accent is a *light* blue carrying dark ink, not a saturated
    fill carrying white. Two reasons: white-on-blue can only clear AA if the blue
    is dark enough to look muddy against graphite, and a chunky light-on-dark
