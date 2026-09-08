@@ -32,7 +32,18 @@ const FLOOR_SELECTOR = [
   ".fhj-sr-kind-chip::after",
   ".fhj-next-btn::after",
   ".fhj-pad-nudge > button::after",
+  ".fhj-toast-undo::after",
+  ".fhj-fr-age-clear::after",
+  ".fhj-fr-angle::after",
+  ".fhj-tour-quiet::after",
+  ".fhj-import-q-opt::after",
 ].join(",\n");
+
+/* Rules that sit in the 24-43px band and are allowed to, because nothing in
+   them is a target: a status line, a readout, a decorative miniature of a
+   control drawn inside an explainer. Each is `aria-hidden` or a plain `div`,
+   checked in the markup rather than guessed from the name. */
+const NOT_A_TARGET = [".fhj-fr-mini", ".fhj-pulse-state", ".fhj-dist-readout"];
 const FLOORED = FLOOR_SELECTOR.split(",\n").map((s) => s.replace("::after", "").trim());
 
 /** The declaration block for a selector, as written. Returns "" when the rule
@@ -101,13 +112,24 @@ describe("controls that could simply grow, did", () => {
     });
   }
 
-  /* This swept for `min-height: NNpx` and nothing else, so every rule that
-     wrote the same number in rem walked straight past it — and six had:
-     `.fhj-sr-helptoggle` at 2.5rem, `.fhj-sr-kind-chip` and `.fhj-fr-fine-btn`
-     at 2rem, `.fhj-fr-swap-chip`, `.fhj-next-btn` and `.fhj-pad-nudge > button`
-     at 2.25rem. A guard that only reads one of the two units a stylesheet
-     actually uses is a guard that passes forever. */
-  it("no interactive rule is left declaring a min-height between 24 and 43px", () => {
+  /* This guard had two holes, and both were the same mistake: it decided what
+     to look at instead of looking at everything.
+
+     It swept for `min-height: NNpx` and nothing else, so six rules that wrote
+     the same number in rem walked straight past — the search help toggle at
+     2.5rem, two chips at 2rem, three more at 2.25rem. And it only flagged a
+     selector whose *name* matched /button|chip|tab|btn|rung|segment|pill|
+     toggle/, which is guessing at what an element does from what somebody
+     called it. `.fhj-toast-undo` is the button that takes back a delete and it
+     is named "undo", so the guard never looked at it; nor at `.fhj-fr-angle`,
+     `.fhj-tour-quiet`, `.fhj-import-q-opt`, `.fhj-fr-age-clear`, or two inputs.
+     Seven live controls, all under the floor, all invisible to the sweep.
+
+     So the default is inverted. Every rule in the band is a finding unless it
+     is on one of the two lists above — floored, or checked in the markup and
+     found not to be a target. A new control has to be looked at rather than
+     named around. */
+  it("no rule is left declaring a min-height between 24 and 43px", () => {
     const stragglers: string[] = [];
     const re = /([^{}]+)\{([^}]*)\}/g;
     let m: RegExpExecArray | null;
@@ -119,9 +141,8 @@ describe("controls that could simply grow, did", () => {
       const n = Number(found[1]) * (found[2] === "rem" ? 16 : 1);
       const sel = selector.trim();
       if (FLOORED.includes(sel)) continue; // ink stays small, target does not
-      if (n >= 24 && n < 44 && /button|chip|tab|btn|rung|segment|pill|toggle/i.test(sel)) {
-        stragglers.push(`${sel} → ${n}px (${found[0]})`);
-      }
+      if (NOT_A_TARGET.includes(sel)) continue; // nothing in it takes a tap
+      if (n >= 24 && n < 44) stragglers.push(`${sel} → ${n}px (${found[0]})`);
     }
     expect(stragglers).toEqual([]);
   });
@@ -133,7 +154,13 @@ describe("controls that could simply grow, did", () => {
      of overlap in the search kind chips before the gap was set from the floor
      rather than from the eye. */
   it("gives a wrapped row of floored chips enough room for the floors", () => {
-    for (const [row, ink] of [[".fhj-sr-kinds", 32], [".fhj-fr-swap-chips", 36]] as const) {
+    const rows = [
+      [".fhj-sr-kinds", 32],
+      [".fhj-fr-swap-chips", 36],
+      [".fhj-fr-angles", 40],
+      [".fhj-import-q-opts", 32],
+    ] as const;
+    for (const [row, ink] of rows) {
       const gap = /row-gap:\s*([\d.]+)rem/.exec(block(row));
       expect(gap, `${row} should set row-gap explicitly`).not.toBeNull();
       expect(Number(gap![1]) * 16).toBeGreaterThanOrEqual(44 - ink);

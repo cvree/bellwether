@@ -464,7 +464,12 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .fhj-fr-swap-chip,
 .fhj-sr-kind-chip,
 .fhj-next-btn,
-.fhj-pad-nudge > button {
+.fhj-pad-nudge > button,
+.fhj-toast-undo,
+.fhj-fr-age-clear,
+.fhj-fr-angle,
+.fhj-tour-quiet,
+.fhj-import-q-opt {
   position: relative;
 }
 .fhj-tap-floor::after,
@@ -474,7 +479,12 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .fhj-fr-swap-chip::after,
 .fhj-sr-kind-chip::after,
 .fhj-next-btn::after,
-.fhj-pad-nudge > button::after {
+.fhj-pad-nudge > button::after,
+.fhj-toast-undo::after,
+.fhj-fr-age-clear::after,
+.fhj-fr-angle::after,
+.fhj-tour-quiet::after,
+.fhj-import-q-opt::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -5917,7 +5927,10 @@ button.fhj-section:disabled {
 
 .fhj-fr-angles {
   display: flex;
-  gap: 0.375rem;
+  /* Room for the floor: 40px of ink under a 44px target reaches 2px past each
+     edge. See `.fhj-sr-kinds` for the arithmetic. */
+  column-gap: 0.375rem;
+  row-gap: 0.375rem;
   margin-top: 0.625rem;
 }
 
@@ -7609,7 +7622,7 @@ button.fhj-section:disabled {
   color: var(--fhj-subtle, #9a9ca6);
 }
 .fhj-import-date input {
-  min-height: 1.875rem;
+  min-height: var(--fhj-tap);
   padding: 0 0.4375rem;
   border-radius: var(--fhj-radius-sm);
   background: var(--fhj-faint, #2a2d35);
@@ -10749,7 +10762,11 @@ button.fhj-section:disabled {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.25rem;
-  padding: 0.5rem 0.75rem;
+  /* No vertical padding: the input inside carries the full 44px, so the row is
+     44px of target rather than 28px of input inside 8px of dead border. Adding
+     the floor to the input *and* keeping the padding would have made a sticky
+     filter bar 60px tall and eaten the list it filters. */
+  padding: 0 0.75rem;
   border-radius: var(--fhj-radius);
   background: var(--fhj-faint, #2a2d35);
   border: var(--fhj-bw) solid var(--fhj-line, #31343d);
@@ -10765,7 +10782,7 @@ button.fhj-section:disabled {
 .fhj-sel-filter-input {
   flex: 1;
   min-width: 0;
-  min-height: 1.75rem;
+  min-height: var(--fhj-tap);
   border: none;
   background: transparent;
   font-size: 0.9375rem;
@@ -12286,7 +12303,9 @@ button.fhj-section:disabled {
 .fhj-import-q-opts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem;
+  /* 32px of ink under a 44px target reaches 6px past each edge. */
+  column-gap: 0.375rem;
+  row-gap: 0.75rem;
   margin-top: 0.5rem;
 }
 .fhj-import-q-opt {
