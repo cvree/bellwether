@@ -23,7 +23,16 @@ const app = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
 /* The rule that grows a hit area without growing the ink, and the selectors it
    covers — the sweep below treats those as satisfying the floor, because they
    do, just not by being 44px on the box itself. */
-const FLOOR_SELECTOR = [".fhj-tap-floor::after", ".fhj-icon-btn::after", ".fhj-chip.fhj-chip-sm::after"].join(",\n");
+const FLOOR_SELECTOR = [
+  ".fhj-tap-floor::after",
+  ".fhj-icon-btn::after",
+  ".fhj-chip.fhj-chip-sm::after",
+  ".fhj-fr-fine-btn::after",
+  ".fhj-fr-swap-chip::after",
+  ".fhj-sr-kind-chip::after",
+  ".fhj-next-btn::after",
+  ".fhj-pad-nudge > button::after",
+].join(",\n");
 const FLOORED = FLOOR_SELECTOR.split(",\n").map((s) => s.replace("::after", "").trim());
 
 /** The declaration block for a selector, as written. Returns "" when the rule
@@ -92,6 +101,12 @@ describe("controls that could simply grow, did", () => {
     });
   }
 
+  /* This swept for `min-height: NNpx` and nothing else, so every rule that
+     wrote the same number in rem walked straight past it — and six had:
+     `.fhj-sr-helptoggle` at 2.5rem, `.fhj-sr-kind-chip` and `.fhj-fr-fine-btn`
+     at 2rem, `.fhj-fr-swap-chip`, `.fhj-next-btn` and `.fhj-pad-nudge > button`
+     at 2.25rem. A guard that only reads one of the two units a stylesheet
+     actually uses is a guard that passes forever. */
   it("no interactive rule is left declaring a min-height between 24 and 43px", () => {
     const stragglers: string[] = [];
     const re = /([^{}]+)\{([^}]*)\}/g;
@@ -99,16 +114,30 @@ describe("controls that could simply grow, did", () => {
     while ((m = re.exec(css))) {
       const [, selector, body] = m;
       if (!/^[.#\w:\-\s,>+~[\]="']+$/.test(selector)) continue; // at-rule preludes
-      const px = /min-height:\s*(\d+)px/.exec(body);
-      if (!px) continue;
-      const n = Number(px[1]);
+      const found = /min-height:\s*([\d.]+)(px|rem)/.exec(body);
+      if (!found) continue;
+      const n = Number(found[1]) * (found[2] === "rem" ? 16 : 1);
       const sel = selector.trim();
       if (FLOORED.includes(sel)) continue; // ink stays small, target does not
       if (n >= 24 && n < 44 && /button|chip|tab|btn|rung|segment|pill|toggle/i.test(sel)) {
-        stragglers.push(`${sel} → ${n}px`);
+        stragglers.push(`${sel} → ${n}px (${found[0]})`);
       }
     }
     expect(stragglers).toEqual([]);
+  });
+
+  /* A floor that reaches past its own chip is only safe if the row gives it
+     room. These two rows wrap, so the arithmetic is: (44 - ink) is how far each
+     floor reaches past the chip, and the row gap has to cover two of those or
+     the lower row silently takes taps aimed at the upper one. It measured 6px
+     of overlap in the search kind chips before the gap was set from the floor
+     rather than from the eye. */
+  it("gives a wrapped row of floored chips enough room for the floors", () => {
+    for (const [row, ink] of [[".fhj-sr-kinds", 32], [".fhj-fr-swap-chips", 36]] as const) {
+      const gap = /row-gap:\s*([\d.]+)rem/.exec(block(row));
+      expect(gap, `${row} should set row-gap explicitly`).not.toBeNull();
+      expect(Number(gap![1]) * 16).toBeGreaterThanOrEqual(44 - ink);
+    }
   });
 });
 

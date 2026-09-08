@@ -8752,7 +8752,7 @@ function CadenceCard({ profile, entries, onSave }) {
           </div>
         ) : (
           <button type="button" onClick={() => { feedback("tap"); setPausing(true); }}
-            className="flex items-center gap-2 text-[12px] font-semibold"
+            className="fhj-tap-floor flex items-center gap-2 text-[12px] font-semibold"
             style={{ color: C.accentText }}>
             <Icon name="pause" size={14} color="currentColor" />
             Pause the journal for a while
@@ -10494,7 +10494,7 @@ function PrivacyCard({ aiEnabled = false, aiAuto = false, syncOn = false, syncEm
         ))}
       </div>
       {!open && (
-        <button onClick={() => setOpen(true)} className="mt-3 text-sm font-medium" style={{ color: C.accentText }}>
+        <button onClick={() => setOpen(true)} className="fhj-tap-floor mt-3 text-sm font-medium" style={{ color: C.accentText }}>
           Read the rest
         </button>
       )}

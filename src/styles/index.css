@@ -79,6 +79,9 @@
        settle   a value finding its place: a bar filling, a ring drawing.
        ambient  atmosphere. The backdrops and the sun's arc.
 
+     90 / 130 / 220 / 320 / 460 / 900, so the gaps run 1.44x, 1.69x, 1.45x,
+     1.44x, 1.96x.
+
      Anything slower than `ambient` is a deliberate one-off and stays a literal,
      as do delays — a delay is rhythm, not speed, and borrowing a duration token
      for one makes the stylesheet lie about which is which. */
@@ -86,7 +89,7 @@
   --fhj-quick: 130ms;
   --fhj-ease: 220ms;
   --fhj-enter: 320ms;
-  --fhj-settle: 420ms;
+  --fhj-settle: 460ms;
   --fhj-ambient: 900ms;
   --fhj-out: cubic-bezier(0.22, 1, 0.36, 1);
   --fhj-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
@@ -424,12 +427,22 @@ input[type="time"]::-webkit-calendar-picker-indicator {
    short. */
 .fhj-tap-floor,
 .fhj-icon-btn,
-.fhj-chip.fhj-chip-sm {
+.fhj-chip.fhj-chip-sm,
+.fhj-fr-fine-btn,
+.fhj-fr-swap-chip,
+.fhj-sr-kind-chip,
+.fhj-next-btn,
+.fhj-pad-nudge > button {
   position: relative;
 }
 .fhj-tap-floor::after,
 .fhj-icon-btn::after,
-.fhj-chip.fhj-chip-sm::after {
+.fhj-chip.fhj-chip-sm::after,
+.fhj-fr-fine-btn::after,
+.fhj-fr-swap-chip::after,
+.fhj-sr-kind-chip::after,
+.fhj-next-btn::after,
+.fhj-pad-nudge > button::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -826,7 +839,23 @@ button:active:not(:disabled) {
 }
 .fhj-switch.is-on {
   background: var(--fhj-accent, #8fb0e3);
+  /* On an accent fill the knob wears the ink that accent was solved against —
+     which is what `onAccent` is for, and which holds for a custom hue too,
+     since deriveAccent solves the accent to clear 4.5:1 on it. */
+  --fhj-knob: var(--fhj-on-accent, #121419);
 }
+
+/* The knob is the whole signal — the switch says on or off by where the circle
+   is, and a circle you cannot see says nothing. It was `#fff`, which is right
+   in exactly the two of four cases where the track happens to be dark: white on
+   the light track measured 1.89:1 in light and white on the accent measured
+   2.21:1 in dark, against the 3:1 WCAG asks of a control's state indicator.
+   Both invisible, and each the other's mirror.
+
+   So the knob takes its colour from the track under it, the same rule the
+   severity rungs follow. Off, the track is `line-strong` and the knob is `ink`;
+   on, it is the accent and the knob is `on-accent`. All four now read between
+   5.4:1 and 8.3:1. The literal stays only as the cold-start fallback. */
 .fhj-switch::after {
   content: "";
   position: absolute;
@@ -835,9 +864,10 @@ button:active:not(:disabled) {
   width: 1.125rem;
   height: 1.125rem;
   border-radius: 50%;
-  background: #fff;
+  background: var(--fhj-knob, var(--fhj-ink, #fff));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.32);
-  transition: transform var(--fhj-ease) var(--fhj-spring);
+  transition: transform var(--fhj-ease) var(--fhj-spring),
+    background-color var(--fhj-ease) ease;
 }
 .fhj-switch.is-on::after {
   transform: translateX(1.125rem);
@@ -4718,7 +4748,10 @@ button.fhj-section:disabled {
 .fhj-fr-swap-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem;
+  /* Same arithmetic as `.fhj-sr-kinds`: 36px of ink under a 44px target needs
+     8px between wrapped rows for the floors to clear each other. */
+  column-gap: 0.375rem;
+  row-gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
@@ -11951,7 +11984,13 @@ button.fhj-section:disabled {
 .fhj-sr-kinds {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem;
+  /* The row gap is set by the tap floor, not by taste. These chips are 32px of
+     ink under a 44px target, so each floor reaches 6px past the chip; at the
+     0.375rem this row used to carry, a wrapped second row overlapped the first
+     by 6px and the lower chip quietly took taps meant for the upper one.
+     12px is the smallest gap at which the two targets stop touching. */
+  column-gap: 0.375rem;
+  row-gap: 0.75rem;
   margin-top: 0.625rem;
 }
 .fhj-sr-kind-chip {
@@ -12084,6 +12123,7 @@ button.fhj-section:disabled {
   align-items: baseline;
   gap: 0.625rem;
   width: 100%;
+  min-height: var(--fhj-tap);
   text-align: left;
   padding: 0.5625rem 0.75rem;
   border-radius: var(--fhj-radius);
@@ -12108,7 +12148,7 @@ button.fhj-section:disabled {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 2.5rem;
+  min-height: var(--fhj-tap);
   font-size: 0.75rem;
   font-weight: 650;
   color: var(--fhj-sub, #b9bac2);
