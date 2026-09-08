@@ -607,7 +607,7 @@ function BigScale({ label, dir, value, onPick }: {
               onPick(n, e.currentTarget);
             }}
             className={"fhj-fr-rung" + (filled ? " is-filled" : "") + (value === n ? " is-picked" : "")}
-            style={filled ? ({ "--fhj-rung": ramp(value!, dir) } as React.CSSProperties) : undefined}>
+            style={filled ? ({ "--fhj-rung": ramp(value!, dir), "--fhj-on-rung": readableInk(ramp(value!, dir)) } as React.CSSProperties) : undefined}>
             {n}
           </button>
         );

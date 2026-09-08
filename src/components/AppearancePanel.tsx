@@ -162,7 +162,7 @@ function HandChoice({ onChoice }: { onChoice?: () => void }) {
   return (
     <div style={{ marginTop: 20 }}>
       <div style={{ ...label, color: C.subtle, marginBottom: 8 }}>Which hand</div>
-      <div className="fhj-seg" role="group" aria-label="Which hand holds the phone">
+      <div className="fhj-segmented" role="group" aria-label="Which hand holds the phone">
         {HANDS.map((h) => {
           const active = hand === h;
           return (
@@ -170,11 +170,8 @@ function HandChoice({ onChoice }: { onChoice?: () => void }) {
               key={h}
               type="button"
               aria-pressed={active}
+              className={"fhj-segment" + (active ? " is-active" : "")}
               onClick={() => { setLocal(setHand(h)); onChoice?.(); }}
-              style={{
-                background: active ? C.accent : "transparent",
-                color: active ? C.onAccent : C.sub,
-              }}
             >
               {h === "right" ? "Right" : "Left"}
             </button>
@@ -226,7 +223,7 @@ export default function AppearancePanel({ onChoice }: { onChoice?: () => void })
 
       <div style={{ marginTop: 20 }}>
         <div style={{ ...label, color: C.subtle, marginBottom: 8 }}>Theme</div>
-        <div className="fhj-seg" role="group" aria-label="Theme">
+        <div className="fhj-segmented" role="group" aria-label="Theme">
           {THEMES.map((t) => {
             const active = theme === t.value;
             return (
@@ -234,13 +231,10 @@ export default function AppearancePanel({ onChoice }: { onChoice?: () => void })
                 key={t.value}
                 type="button"
                 aria-pressed={active}
+                className={"fhj-segment" + (active ? " is-active" : "")}
                 onClick={() => {
                   setThemePreference(t.value);
                   ping();
-                }}
-                style={{
-                  background: active ? C.accent : "transparent",
-                  color: active ? C.onAccent : C.sub,
                 }}
               >
                 {t.name}

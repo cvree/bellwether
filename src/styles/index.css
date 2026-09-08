@@ -58,10 +58,36 @@
      --fhj-shadow-pop so the element lands exactly on its own shadow. */
   --fhj-press: 3px;
 
-  /* Two durations, two curves. A third of either is usually a component asking
-     for attention it hasn't earned. */
+  /* One motion ladder, two curves.
+
+     This used to say "two durations", and it was not true: the file had grown
+     thirty-three distinct values, and the three commonest — 130, 260 and 220 —
+     were painting 147, 99 and 76 elements on the dashboard alone. Two of those
+     are eighteen percent apart, which is below the point where anyone can tell
+     them apart, so they were never two speeds. They were one speed, written
+     down twice.
+
+     So the rungs below are the speeds the app actually moves at, named for what
+     they do. Each is roughly 1.5x the one before it, which is about the smallest
+     gap at which two durations read as different rather than as one done
+     sloppily. Reach for the role, not the number:
+
+       press    the travel under a finger. Felt, never watched.
+       quick    a control answering: a tint, a hover, a check landing.
+       ease     the default. A state change you actually look at.
+       enter    something arriving or opening: a sheet, a toast, a tile.
+       settle   a value finding its place: a bar filling, a ring drawing.
+       ambient  atmosphere. The backdrops and the sun's arc.
+
+     Anything slower than `ambient` is a deliberate one-off and stays a literal,
+     as do delays — a delay is rhythm, not speed, and borrowing a duration token
+     for one makes the stylesheet lie about which is which. */
+  --fhj-press: 90ms;
   --fhj-quick: 130ms;
   --fhj-ease: 220ms;
+  --fhj-enter: 320ms;
+  --fhj-settle: 420ms;
+  --fhj-ambient: 900ms;
   --fhj-out: cubic-bezier(0.22, 1, 0.36, 1);
   --fhj-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
@@ -615,7 +641,7 @@ button:active:not(:disabled) {
   border: var(--fhj-bw) solid var(--fhj-line, #31343d);
   border-top: none;
   border-radius: 0 0 var(--fhj-radius) var(--fhj-radius);
-  animation: fhjPanel 240ms var(--fhj-out);
+  animation: fhjPanel var(--fhj-ease) var(--fhj-out);
   overflow: hidden;
 }
 @keyframes fhjPanel {
@@ -739,6 +765,13 @@ button:active:not(:disabled) {
   flex: 1;
   min-height: var(--fhj-tap);
   padding: 0.4375rem 0.5rem;
+  /* One segment wrapping makes the whole row taller than every other segmented
+     control on the screen — the Insights range picker was 61px against its
+     neighbour's 52px on any phone 390px or narrower, because "12 months" broke
+     after "12". A segmented control is a row of equals; it cannot have one
+     member that is two lines tall. Labels are short enough to fit, and this is
+     the guard that keeps the next one honest. */
+  white-space: nowrap;
   border-radius: calc(var(--fhj-radius) - 0.1875rem);
   background: transparent;
   color: var(--fhj-sub, #adafb8);
@@ -971,13 +1004,13 @@ button.fhj-section,
    enough at this size. */
 button.fhj-section {
   width: 100%;
-  border-radius: 0.625rem;
+  border-radius: var(--fhj-radius-sm);
   padding: 0.125rem 0.25rem;
   margin-left: -0.25rem;
   margin-right: -0.25rem;
   transition:
-    background var(--fhj-ease, 160ms) var(--fhj-out),
-    transform 90ms var(--fhj-out);
+    background var(--fhj-ease, var(--fhj-quick)) var(--fhj-out),
+    transform var(--fhj-press) var(--fhj-out);
 }
 button.fhj-section:hover:not(:disabled) {
   background: var(--fhj-faint, rgba(255, 255, 255, 0.04));
@@ -995,7 +1028,7 @@ button.fhj-section:disabled {
    more field. */
 .fhj-photo-lead {
   padding: 0.75rem;
-  border-radius: var(--fhj-radius, 0.875rem);
+  border-radius: var(--fhj-radius, var(--fhj-radius));
   background: var(--fhj-tint-soft, var(--fhj-faint, rgba(255, 255, 255, 0.04)));
   border: var(--fhj-bw, 1.5px) dashed var(--fhj-line-strong, #464a55);
 }
@@ -1139,7 +1172,7 @@ button.fhj-section:disabled {
 }
 
 .fhj-sortable.is-sorting > [data-sort] {
-  transition: transform 260ms var(--fhj-out);
+  transition: transform var(--fhj-ease) var(--fhj-out);
 }
 
 .fhj-sortable > [data-sort].is-lifted {
@@ -1164,7 +1197,7 @@ button.fhj-section:disabled {
   background: var(--fhj-faint, rgba(255, 255, 255, 0.04));
   pointer-events: none;
   z-index: 0;
-  transition: left 200ms var(--fhj-out), top 200ms var(--fhj-out);
+  transition: left var(--fhj-ease) var(--fhj-out), top var(--fhj-ease) var(--fhj-out);
 }
 
 @media (hover: hover) {
@@ -1361,7 +1394,7 @@ button.fhj-section:disabled {
 
 .fhj-acc-head {
   transition: background var(--fhj-ease) ease, border-color var(--fhj-ease) ease,
-    transform 120ms var(--fhj-out);
+    transform var(--fhj-quick) var(--fhj-out);
 }
 .fhj-acc-head:active {
   transform: scale(0.992);
@@ -1381,7 +1414,7 @@ button.fhj-section:disabled {
   height: 100%;
   object-fit: cover;
   background: var(--fhj-faint, #2a2d35);
-  animation: fhjPhotoIn 320ms var(--fhj-out) backwards;
+  animation: fhjPhotoIn var(--fhj-enter) var(--fhj-out) backwards;
 }
 @keyframes fhjPhotoIn {
   from {
@@ -1424,7 +1457,7 @@ button.fhj-section:disabled {
      smudge where eight reads as distance. */
   backdrop-filter: blur(8px) saturate(115%);
   -webkit-backdrop-filter: blur(8px) saturate(115%);
-  animation: fhjFade 220ms ease;
+  animation: fhjFade var(--fhj-ease) ease;
 }
 @media (min-width: 640px) {
   .fhj-scrim {
@@ -1453,7 +1486,7 @@ button.fhj-section:disabled {
      which is what a physical thing sliding to a stop does and what a linear
      ease-out conspicuously does not. It is the difference between a panel
      appearing and a panel arriving. */
-  animation: fhjSheet 380ms var(--fhj-spring);
+  animation: fhjSheet var(--fhj-enter) var(--fhj-spring);
   /* Set by the drag handler while a dismiss gesture is in flight. */
   transform: translateY(var(--fhj-sheet-drag, 0px));
 }
@@ -1590,10 +1623,10 @@ button.fhj-section:disabled {
   border: var(--fhj-bw) solid var(--fhj-line-strong, #464a55);
   box-shadow: var(--fhj-shadow-lg, 0 12px 36px rgba(0, 0, 0, 0.46));
   pointer-events: auto;
-  animation: fhjToastIn 260ms var(--fhj-spring);
+  animation: fhjToastIn var(--fhj-ease) var(--fhj-spring);
 }
 .fhj-toast.is-leaving {
-  animation: fhjToastOut 160ms ease forwards;
+  animation: fhjToastOut var(--fhj-quick) ease forwards;
 }
 .fhj-toast-mark {
   display: inline-flex;
@@ -1888,10 +1921,10 @@ button.fhj-section:disabled {
   flex: none;
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   border: 2px solid var(--fhj-line-strong, #3d4049);
   color: transparent;
-  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+  transition: background var(--fhj-quick) ease, border-color var(--fhj-quick) ease, color var(--fhj-quick) ease;
 }
 .fhj-check-row.is-done .fhj-check-box {
   background: var(--fhj-mark, var(--fhj-accent, #8fb0e3));
@@ -1956,16 +1989,16 @@ button.fhj-section:disabled {
    somebody actually wants back. */
 .fhj-check-bar {
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-faint, rgba(255, 255, 255, 0.05));
   overflow: hidden;
 }
 .fhj-check-bar > span {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-mark, var(--fhj-accent, #8fb0e3));
-  transition: width 280ms var(--fhj-out, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: width var(--fhj-enter) var(--fhj-out, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 
@@ -2066,11 +2099,11 @@ button.fhj-section:disabled {
 }
 .fhj-week-dot {
   display: block;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: transparent;
   border: 1.5px solid var(--fhj-line-strong, #464a55);
-  transition: background-color 220ms var(--fhj-out), border-color 220ms var(--fhj-out),
-    transform 220ms var(--fhj-spring);
+  transition: background-color var(--fhj-ease) var(--fhj-out), border-color var(--fhj-ease) var(--fhj-out),
+    transform var(--fhj-ease) var(--fhj-spring);
 }
 .fhj-week-dot.is-done {
   background: var(--fhj-mark, var(--fhj-accent, #8fb0e3));
@@ -2204,16 +2237,16 @@ button.fhj-section:disabled {
   display: block;
   margin-top: 0.3125rem;
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-faint, rgba(255, 255, 255, 0.05));
   overflow: hidden;
 }
 .fhj-ritual-bar-fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-mark, var(--fhj-accent, #8fb0e3));
-  transition: width 280ms var(--fhj-out);
+  transition: width var(--fhj-enter) var(--fhj-out);
 }
 
 .fhj-ritual-empty,
@@ -2255,9 +2288,9 @@ button.fhj-section:disabled {
 }
 .fhj-ritual-progress-fill {
   height: 100%;
-  border-radius: 0 999px 999px 0;
+  border-radius: 0 var(--fhj-radius-pill) var(--fhj-radius-pill) 0;
   background: var(--fhj-mark, var(--fhj-accent, #8fb0e3));
-  transition: width 320ms var(--fhj-spring);
+  transition: width var(--fhj-enter) var(--fhj-spring);
 }
 
 .fhj-step-list {
@@ -2310,10 +2343,10 @@ button.fhj-section:disabled {
   flex: none;
   width: 2rem;
   height: 2rem;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   border: 2px solid var(--fhj-line-strong, #3d4049);
   color: transparent;
-  transition: background 160ms ease, border-color 160ms ease;
+  transition: background var(--fhj-quick) ease, border-color var(--fhj-quick) ease;
 }
 .fhj-step-row.is-done .fhj-step-box {
   background: var(--fhj-mark, var(--fhj-accent, #8fb0e3));
@@ -2333,7 +2366,7 @@ button.fhj-section:disabled {
 .fhj-step-optional {
   margin-left: 0.4375rem;
   padding: 0.0625rem 0.375rem;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-faint, rgba(255, 255, 255, 0.05));
   font-size: 0.5625rem;
   font-weight: 700;
@@ -2355,7 +2388,7 @@ button.fhj-section:disabled {
   gap: 0.25rem;
   flex: none;
   padding: 0.3125rem 0.5625rem;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-faint, rgba(255, 255, 255, 0.05));
   border: var(--fhj-bw) solid transparent;
   font-size: 0.6875rem;
@@ -2402,9 +2435,9 @@ button.fhj-section:disabled {
 .fhj-tune-pip {
   width: 0.375rem;
   height: 0.375rem;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-line-strong, #464a55);
-  transition: background-color 220ms ease, transform 220ms var(--fhj-spring);
+  transition: background-color var(--fhj-ease) ease, transform var(--fhj-ease) var(--fhj-spring);
 }
 .fhj-tune-pip.is-on {
   background: var(--fhj-mark, var(--fhj-accent, #8fb0e3));
@@ -2412,7 +2445,7 @@ button.fhj-section:disabled {
 }
 .fhj-tune-stage {
   padding: 0.5rem 0 0.25rem;
-  animation: fhjTuneIn 320ms var(--fhj-out);
+  animation: fhjTuneIn var(--fhj-enter) var(--fhj-out);
 }
 @keyframes fhjTuneIn {
   from {
@@ -2727,7 +2760,7 @@ button.fhj-section:disabled {
    entrances that need no JavaScript to be correct. */
 
 .fhj-screen {
-  animation: fhjIn 280ms var(--fhj-out);
+  animation: fhjIn var(--fhj-enter) var(--fhj-out);
 }
 @keyframes fhjIn {
   from {
@@ -2737,7 +2770,7 @@ button.fhj-section:disabled {
 }
 
 .fhj-stagger > * {
-  animation: fhjRise 460ms var(--fhj-out) backwards;
+  animation: fhjRise var(--fhj-settle) var(--fhj-out) backwards;
 }
 .fhj-stagger > *:nth-child(2) {
   animation-delay: 40ms;
@@ -2770,7 +2803,7 @@ button.fhj-section:disabled {
    app feel faster; this was the one place it did the opposite, on the most
    pressed path in the app. */
 .fhj-stagger > .fhj-scrim {
-  animation: fhjFade 180ms ease;
+  animation: fhjFade var(--fhj-ease) ease;
 }
 
 @keyframes fhjRise {
@@ -3336,13 +3369,13 @@ button.fhj-section:disabled {
 }
 .fhj-backdrop-choice {
   text-align: left;
-  border-radius: 0.875rem;
+  border-radius: var(--fhj-radius);
   border-width: 2px;
   border-style: solid;
   padding: 0.5rem;
   transition:
-    border-color 140ms,
-    box-shadow 140ms;
+    border-color var(--fhj-quick),
+    box-shadow var(--fhj-quick);
 }
 .fhj-backdrop-choice-preview {
   position: relative;
@@ -3382,7 +3415,7 @@ button.fhj-section:disabled {
 }
 .fhj-hue-slider::-webkit-slider-runnable-track {
   height: 14px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   border: 1px solid var(--fhj-line, #31343d);
   background: linear-gradient(
     to right,
@@ -3397,7 +3430,7 @@ button.fhj-section:disabled {
 }
 .fhj-hue-slider::-moz-range-track {
   height: 14px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   border: 1px solid var(--fhj-line, #31343d);
   background: linear-gradient(
     to right,
@@ -3416,7 +3449,7 @@ button.fhj-section:disabled {
   width: 22px;
   height: 22px;
   margin-top: -5px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-thumb, #8fb0e3);
   border: 2px solid var(--fhj-bg, #141519);
   box-shadow: 0 0 0 1.5px var(--fhj-line-strong, #464a55);
@@ -3424,7 +3457,7 @@ button.fhj-section:disabled {
 .fhj-hue-slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-thumb, #8fb0e3);
   border: 2px solid var(--fhj-bg, #141519);
   box-shadow: 0 0 0 1.5px var(--fhj-line-strong, #464a55);
@@ -3432,7 +3465,7 @@ button.fhj-section:disabled {
 .fhj-hue-slider:focus-visible {
   outline: 2px solid var(--fhj-focus, #a6c3ea);
   outline-offset: 4px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
 }
 
 /* Under Night Light the wheel is misleading — the slider can only reach the
@@ -3444,25 +3477,18 @@ button.fhj-section:disabled {
   background: linear-gradient(to right, hsl(20 60% 52%), hsl(36 62% 56%), hsl(52 64% 58%));
 }
 
-/* ---- segmented + night row ---- */
+/* ---- the night row ----
 
-.fhj-seg {
-  display: flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border-radius: 0.75rem;
-  background: var(--fhj-faint, #2a2d35);
-}
-.fhj-seg > button {
-  flex: 1;
-  min-height: var(--fhj-tap);
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  transition:
-    background 140ms,
-    color 140ms;
-}
+   Theme and Which-hand used to be a second segmented control that lived only
+   here: `.fhj-seg`, with its own padding, its own radius, no border, and a
+   solid accent fill for the selected option where every other segmented
+   control in the app raises a bordered card. Two shapes doing one job, and the
+   loud one sat on the screen whose entire purpose is choosing how the app
+   should look. They are `.fhj-segmented` now — the same control as the range
+   picker on Insights and the compare switch in the explorer.
+
+   The comment at the top of AppearancePanel already made this argument about
+   first-run versus Settings. It applies just as well one level up. */
 
 .fhj-night-row {
   display: flex;
@@ -3473,12 +3499,12 @@ button.fhj-section:disabled {
   text-align: left;
   margin-top: 1.25rem;
   padding: 0.875rem;
-  border-radius: 0.875rem;
+  border-radius: var(--fhj-radius);
   border-width: 1px;
   border-style: solid;
   transition:
-    background 140ms,
-    border-color 140ms;
+    background var(--fhj-quick),
+    border-color var(--fhj-quick);
 }
 
 /* Reduced motion keeps the atmosphere and drops the movement. */
@@ -3709,7 +3735,7 @@ button.fhj-section:disabled {
 }
 .fhj-scale-rung.is-filled {
   background: var(--fhj-rung, var(--fhj-accent, #8fb0e3));
-  color: var(--fhj-on-accent, #121419);
+  color: var(--fhj-on-rung, var(--fhj-on-accent, #121419));
 }
 /* The rung actually chosen, as opposed to the ones filled in under it. */
 .fhj-scale-rung.is-picked {
@@ -4045,7 +4071,7 @@ button.fhj-section:disabled {
   font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
-  transition: transform 160ms ease;
+  transition: transform var(--fhj-quick) ease;
 }
 .fhj-skip:focus {
   transform: translate(-50%, 0);
@@ -4390,7 +4416,7 @@ button.fhj-section:disabled {
   background: var(--fhj-accent, #8fb0e3);
   box-shadow: var(--fhj-shadow-pop-lg, 5px 5px 0 rgba(0, 0, 0, 0.5));
   overflow: hidden;
-  transition: transform 90ms var(--fhj-out), box-shadow 90ms var(--fhj-out), opacity var(--fhj-quick) ease;
+  transition: transform var(--fhj-press) var(--fhj-out), box-shadow var(--fhj-press) var(--fhj-out), opacity var(--fhj-quick) ease;
 }
 .fhj-fr-primary::after {
   content: "";
@@ -4452,7 +4478,7 @@ button.fhj-section:disabled {
   color: var(--fhj-subtle, #9a9ca6);
   margin-top: 0.5rem;
   text-align: left;
-  animation: fhjFrFine 260ms var(--fhj-out) both;
+  animation: fhjFrFine var(--fhj-ease) var(--fhj-out) both;
 }
 
 @keyframes fhjFrFine {
@@ -4497,7 +4523,7 @@ button.fhj-section:disabled {
   background: var(--fhj-card, #1e2026);
   border: var(--fhj-bw) solid var(--fhj-line, rgba(255, 255, 255, 0.08));
   transition:
-    transform 140ms var(--fhj-spring),
+    transform var(--fhj-quick) var(--fhj-spring),
     border-color var(--fhj-quick) ease,
     background var(--fhj-quick) ease;
 }
@@ -4570,7 +4596,7 @@ button.fhj-section:disabled {
   background:
     radial-gradient(120% 90% at 50% -20%, color-mix(in srgb, var(--fhj-day) 12%, transparent), transparent 70%),
     var(--fhj-card, #1e2026);
-  transition: box-shadow 320ms var(--fhj-out), border-color 320ms var(--fhj-out), background 320ms var(--fhj-out);
+  transition: box-shadow var(--fhj-enter) var(--fhj-out), border-color var(--fhj-enter) var(--fhj-out), background var(--fhj-enter) var(--fhj-out);
 }
 
 .fhj-fr-card-head {
@@ -4637,7 +4663,7 @@ button.fhj-section:disabled {
   color: var(--fhj-sub, #b9bac2);
   background: var(--fhj-faint, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--fhj-line, rgba(255, 255, 255, 0.08));
-  transition: background var(--fhj-quick) ease, color var(--fhj-quick) ease, transform 90ms var(--fhj-out);
+  transition: background var(--fhj-quick) ease, color var(--fhj-quick) ease, transform var(--fhj-press) var(--fhj-out);
 }
 .fhj-fr-rung:active { transform: translateY(2px); }
 .fhj-fr-rung.is-filled {
@@ -4648,7 +4674,7 @@ button.fhj-section:disabled {
 .fhj-fr-rung.is-picked {
   background: var(--fhj-rung);
   border-color: var(--fhj-rung);
-  color: #121419;
+  color: var(--fhj-on-rung, #121419);
   box-shadow: var(--fhj-shadow-pop, 3px 3px 0 rgba(0, 0, 0, 0.5));
 }
 
@@ -4662,7 +4688,7 @@ button.fhj-section:disabled {
 
 .fhj-fr-note {
   margin-top: 0.875rem;
-  animation: fhjFrFine 240ms var(--fhj-out) both;
+  animation: fhjFrFine var(--fhj-ease) var(--fhj-out) both;
 }
 .fhj-fr-note textarea {
   width: 100%;
@@ -4949,7 +4975,7 @@ button.fhj-section:disabled {
   background: var(--fhj-card, #1e2026);
   border: var(--fhj-bw) solid var(--fhj-line, rgba(255, 255, 255, 0.08));
   transition:
-    transform 140ms var(--fhj-spring),
+    transform var(--fhj-quick) var(--fhj-spring),
     border-color var(--fhj-quick) ease,
     background var(--fhj-quick) ease;
 }
@@ -5058,7 +5084,7 @@ button.fhj-section:disabled {
   font-weight: 600;
   background: var(--fhj-card, #1e2026);
   border: 1px solid var(--fhj-line, rgba(255, 255, 255, 0.08));
-  animation: fhjFrTile 260ms var(--fhj-out) both;
+  animation: fhjFrTile var(--fhj-ease) var(--fhj-out) both;
 }
 
 .fhj-fr-preview-icon {
@@ -5680,7 +5706,7 @@ button.fhj-section:disabled {
   background: var(--fhj-card, #1e2026);
   border: var(--fhj-bw) solid var(--fhj-line, #31343d);
   overflow: hidden;
-  animation: fhjFrFine 260ms var(--fhj-out) both;
+  animation: fhjFrFine var(--fhj-ease) var(--fhj-out) both;
 }
 
 .fhj-fr-pv-head {
@@ -5874,7 +5900,7 @@ button.fhj-section:disabled {
   flex-direction: column;
   gap: 0.3125rem;
   width: 4.25rem;
-  animation: fhjFrFrame 320ms var(--fhj-spring) both;
+  animation: fhjFrFrame var(--fhj-enter) var(--fhj-spring) both;
 }
 
 .fhj-fr-frame-win {
@@ -6008,7 +6034,7 @@ button.fhj-section:disabled {
   text-align: left;
   background: var(--fhj-card, #1e2026);
   border: var(--fhj-bw) solid var(--fhj-line, #31343d);
-  transition: transform 90ms var(--fhj-out), border-color var(--fhj-quick) ease, background var(--fhj-quick) ease;
+  transition: transform var(--fhj-press) var(--fhj-out), border-color var(--fhj-quick) ease, background var(--fhj-quick) ease;
 }
 .fhj-fr-wq:active:not(:disabled) { transform: scale(0.985); }
 .fhj-fr-wq.is-on {
@@ -6204,7 +6230,7 @@ button.fhj-section:disabled {
   font-weight: 700;
   color: var(--fhj-on-accent, #121419);
   background: var(--fhj-accent, #8fb0e3);
-  transition: transform 90ms var(--fhj-out);
+  transition: transform var(--fhj-press) var(--fhj-out);
 }
 .fhj-fr-pw-yes:active { transform: scale(0.985); }
 .fhj-fr-pw-yes[aria-pressed="true"] {
@@ -6300,7 +6326,7 @@ button.fhj-section:disabled {
   background: var(--fhj-card, #1e2026);
   border: var(--fhj-bw) solid var(--fhj-line, rgba(255, 255, 255, 0.08));
   transition:
-    transform 140ms var(--fhj-spring),
+    transform var(--fhj-quick) var(--fhj-spring),
     border-color var(--fhj-quick) ease,
     background var(--fhj-quick) ease;
 }
@@ -6352,7 +6378,7 @@ button.fhj-section:disabled {
   border-top: 1px solid var(--fhj-line, rgba(255, 255, 255, 0.08));
 }
 @media (prefers-reduced-motion: no-preference) {
-  .fhj-fr-aim-open { animation: fhj-fr-open 260ms ease-out both; }
+  .fhj-fr-aim-open { animation: fhj-fr-open var(--fhj-ease) ease-out both; }
 }
 @keyframes fhj-fr-open {
   from { opacity: 0; transform: translateY(-4px); }
@@ -6805,7 +6831,7 @@ button.fhj-section:disabled {
   transition:
     background var(--fhj-quick) ease,
     color var(--fhj-quick) ease,
-    transform 90ms var(--fhj-out);
+    transform var(--fhj-press) var(--fhj-out);
 }
 .fhj-pulse-rung:active:not(:disabled) {
   transform: translateY(2px);
@@ -6822,7 +6848,12 @@ button.fhj-section:disabled {
 .fhj-pulse-rung.is-picked {
   background: var(--fhj-rung);
   border-color: var(--fhj-rung);
-  color: #121419;
+  /* The label is paired with the fill, never assumed from it. The severity
+     ramp inverts between themes — bright on dark, dark on paper — so a fixed
+     dark ink here read at 3.3:1 on light's #B54039 while the same rule read at
+     7.2:1 in dark. `readableInk` picks the side that wins, the way the Bristol
+     step scale has always done it; the fallback is the dark-theme answer. */
+  color: var(--fhj-on-rung, #121419);
   font-weight: 700;
   box-shadow: var(--fhj-shadow-pop, 3px 3px 0 rgba(0, 0, 0, 0.5));
 }
@@ -6876,7 +6907,7 @@ button.fhj-section:disabled {
   transition:
     background var(--fhj-quick) ease,
     border-color var(--fhj-quick) ease,
-    transform 90ms var(--fhj-out);
+    transform var(--fhj-press) var(--fhj-out);
 }
 .fhj-pulse-chip:active {
   transform: translateY(1px);
@@ -7059,9 +7090,9 @@ button.fhj-section:disabled {
   background: var(--fhj-line, rgba(255, 255, 255, 0.08));
   border: 1px solid transparent;
   transition:
-    background-color 260ms var(--fhj-out),
-    border-color 260ms var(--fhj-out),
-    transform 260ms var(--fhj-out);
+    background-color var(--fhj-ease) var(--fhj-out),
+    border-color var(--fhj-ease) var(--fhj-out),
+    transform var(--fhj-ease) var(--fhj-out);
 }
 .fhj-checkin-pip.is-on {
   transform: scaleY(1.28);
@@ -7099,7 +7130,7 @@ button.fhj-section:disabled {
   display: block;
   height: 100%;
   border-radius: var(--fhj-radius-pill);
-  transition: width 320ms var(--fhj-out);
+  transition: width var(--fhj-enter) var(--fhj-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -7171,8 +7202,8 @@ button.fhj-section:disabled {
   border-radius: var(--fhj-radius-pill);
   background: var(--fhj-line, rgba(255, 255, 255, 0.08));
   transition:
-    height 260ms var(--fhj-out),
-    background-color 260ms var(--fhj-out);
+    height var(--fhj-ease) var(--fhj-out),
+    background-color var(--fhj-ease) var(--fhj-out);
 }
 .fhj-record-mark.is-on {
   height: 8px;
@@ -7220,7 +7251,7 @@ button.fhj-section:disabled {
   display: block;
 }
 .fhj-ring-arc {
-  transition: stroke-dasharray 420ms var(--fhj-out);
+  transition: stroke-dasharray var(--fhj-settle) var(--fhj-out);
 }
 .fhj-ring-mid {
   position: absolute;
@@ -7312,7 +7343,7 @@ button.fhj-section:disabled {
   display: block;
   height: 100%;
   border-radius: var(--fhj-radius-pill);
-  transition: width 320ms var(--fhj-out);
+  transition: width var(--fhj-enter) var(--fhj-out);
 }
 
 /* ---------- the slot ----------
@@ -7631,7 +7662,7 @@ button.fhj-section:disabled {
   color: var(--fhj-accent-text, #a6c3ea);
   background: color-mix(in srgb, var(--fhj-bg, #141519) 82%, transparent);
   border: 2px dashed var(--fhj-accent, #8fb0e3);
-  border-radius: var(--fhj-radius-lg, 1.25rem);
+  border-radius: var(--fhj-radius-lg, var(--fhj-radius-lg));
   pointer-events: none;
 }
 
@@ -7981,7 +8012,7 @@ button.fhj-section:disabled {
   transform-origin: left center;
   border-radius: inherit;
   background: var(--fhj-accent, #8fb0e3);
-  transition: transform 900ms var(--fhj-out);
+  transition: transform var(--fhj-ambient) var(--fhj-out);
 }
 .fhj-ev-seg[data-state="done"] .fhj-ev-seg-fill {
   opacity: 0.55;
@@ -8013,7 +8044,7 @@ button.fhj-section:disabled {
   padding: 0.875rem;
   border-radius: var(--fhj-radius);
   background: var(--fhj-faint, #2a2d35);
-  animation: fhjEvOpen 260ms var(--fhj-out);
+  animation: fhjEvOpen var(--fhj-ease) var(--fhj-out);
 }
 
 @keyframes fhjEvOpen {
@@ -8202,7 +8233,7 @@ button.fhj-section:disabled {
 /* The stretch spent outside draws itself along the path when it appears. */
 .fhj-arc-span {
   stroke-dasharray: 200;
-  animation: fhjArcDraw 900ms var(--fhj-out) both;
+  animation: fhjArcDraw var(--fhj-ambient) var(--fhj-out) both;
 }
 @keyframes fhjArcDraw {
   from {
@@ -8536,7 +8567,7 @@ button.fhj-section:disabled {
   transform-origin: left center;
   border-radius: inherit;
   background: var(--fhj-good, #7f9f7e);
-  transition: transform 900ms var(--fhj-out), background 900ms ease;
+  transition: transform var(--fhj-ambient) var(--fhj-out), background var(--fhj-ambient) ease;
 }
 .fhj-sun-burn[data-level="building"] .fhj-sun-burn-bar > span {
   background: var(--fhj-warn, #d68a4a);
@@ -8729,7 +8760,7 @@ button.fhj-section:disabled {
   border-radius: 50%;
   background: var(--fhj-ink, #ecebe7);
   opacity: 0.35;
-  animation: fhjDotIn 420ms var(--fhj-out) both;
+  animation: fhjDotIn var(--fhj-settle) var(--fhj-out) both;
 }
 .fhj-exp-dot[data-side="high"] {
   opacity: 0.75;
@@ -8988,7 +9019,7 @@ button.fhj-section:disabled {
   border-radius: 50%;
   background: var(--fhj-card, #1e2026);
   border: 2px solid var(--fhj-accent, #8fb0e3);
-  animation: fhjNodeIn 420ms var(--fhj-out) both;
+  animation: fhjNodeIn var(--fhj-settle) var(--fhj-out) both;
 }
 .fhj-lab-node.is-on {
   width: 14px;
@@ -9143,7 +9174,7 @@ button.fhj-section:disabled {
   grid-template-columns: 1.5rem 1fr;
   gap: 0.5rem;
   align-items: start;
-  animation: fhjChangeIn 420ms var(--fhj-out) both;
+  animation: fhjChangeIn var(--fhj-settle) var(--fhj-out) both;
 }
 .fhj-labs-changes li:nth-child(2) { animation-delay: 60ms; }
 .fhj-labs-changes li:nth-child(3) { animation-delay: 120ms; }
@@ -9412,6 +9443,9 @@ button.fhj-section:disabled {
   -webkit-backdrop-filter: saturate(150%) blur(12px);
   border: var(--fhj-bw) solid var(--fhj-accent-line, rgba(143, 176, 227, 0.4));
   box-shadow: var(--fhj-shadow, 0 4px 16px rgba(0, 0, 0, 0.34));
+  /* The trailing time is a delay, not a duration: the coach mark waits for the
+     screen to settle before it speaks. Kept a literal so it cannot be read as
+     a rung of the ladder. */
   animation: fhjCoachIn 520ms var(--fhj-spring) both 900ms;
 }
 .fhj-thumb-coach b {
@@ -9439,7 +9473,7 @@ button.fhj-section:disabled {
 }
 @media (prefers-reduced-motion: reduce) {
   .fhj-thumb-coach {
-    animation: fhjFade 200ms ease both 600ms;
+    animation: fhjFade var(--fhj-ease) ease both 600ms;
   }
   .fhj-thumb-coach-dot {
     animation: none;
@@ -9483,7 +9517,7 @@ button.fhj-section:disabled {
   -webkit-backdrop-filter: saturate(160%) blur(12px);
   border: var(--fhj-bw) solid var(--fhj-line-strong, #464a55);
   box-shadow: var(--fhj-shadow, 0 4px 16px rgba(0, 0, 0, 0.34));
-  animation: fhjBackIn 320ms var(--fhj-spring) both;
+  animation: fhjBackIn var(--fhj-enter) var(--fhj-spring) both;
 }
 .fhj-thumb-back > span:last-child {
   overflow: hidden;
@@ -9511,7 +9545,7 @@ button.fhj-section:disabled {
 }
 @media (prefers-reduced-motion: reduce) {
   .fhj-thumb-back {
-    animation: fhjFade 140ms ease both;
+    animation: fhjFade var(--fhj-quick) ease both;
   }
 }
 
@@ -9549,7 +9583,7 @@ button.fhj-section:disabled {
   height: 2px;
   border-radius: var(--fhj-radius-pill);
   background: var(--fhj-accent, #8fb0e3);
-  transition: width 240ms var(--fhj-out), opacity 240ms var(--fhj-out);
+  transition: width var(--fhj-ease) var(--fhj-out), opacity var(--fhj-ease) var(--fhj-out);
   opacity: 0;
 }
 .fhj-thumb-tab.is-active::before {
@@ -9604,7 +9638,7 @@ button.fhj-section:disabled {
   box-shadow:
     0 6px 18px color-mix(in srgb, var(--fhj-accent, #8fb0e3) 34%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: transform 180ms var(--fhj-spring), box-shadow 240ms var(--fhj-out);
+  transition: transform var(--fhj-ease) var(--fhj-spring), box-shadow var(--fhj-ease) var(--fhj-out);
 }
 /* The halo. One slow breath every six seconds at four percent opacity — it is
    there to say the button is live, and it is under the threshold where a
@@ -9669,7 +9703,7 @@ button.fhj-section:disabled {
     var(--fhj-overlay, rgba(10, 11, 14, 0.72));
   backdrop-filter: blur(10px) saturate(120%);
   -webkit-backdrop-filter: blur(10px) saturate(120%);
-  animation: fhjFanScrim 150ms var(--fhj-out) both;
+  animation: fhjFanScrim var(--fhj-quick) var(--fhj-out) both;
 }
 @keyframes fhjFanScrim {
   from { opacity: 0; }
@@ -9724,8 +9758,8 @@ button.fhj-section:disabled {
   transform: translate3d(0, 0, 0) scale(0.4);
   opacity: 0;
   transition:
-    transform 260ms var(--fhj-spring) var(--fd, 0ms),
-    opacity 130ms ease var(--fd, 0ms);
+    transform var(--fhj-ease) var(--fhj-spring) var(--fd, 0ms),
+    opacity var(--fhj-quick) ease var(--fd, 0ms);
 }
 .fhj-fan-stage.is-in .fhj-fan-item {
   transform: translate3d(var(--fx, 0px), var(--fy, 0px), 0) scale(1);
@@ -9742,8 +9776,8 @@ button.fhj-section:disabled {
   background: var(--fhj-card, #1e2026);
   border: var(--fhj-bw-strong) solid var(--fhj-line-strong, #464a55);
   box-shadow: var(--fhj-shadow, 0 4px 16px rgba(0, 0, 0, 0.34));
-  transition: transform 200ms var(--fhj-spring), background 200ms var(--fhj-out),
-    border-color 200ms var(--fhj-out), box-shadow 200ms var(--fhj-out), color 200ms var(--fhj-out);
+  transition: transform var(--fhj-ease) var(--fhj-spring), background var(--fhj-ease) var(--fhj-out),
+    border-color var(--fhj-ease) var(--fhj-out), box-shadow var(--fhj-ease) var(--fhj-out), color var(--fhj-ease) var(--fhj-out);
 }
 
 .fhj-fan-label {
@@ -9757,7 +9791,7 @@ button.fhj-section:disabled {
   white-space: nowrap;
   color: var(--fhj-sub, #adafb8);
   text-shadow: 0 1px 6px var(--fhj-bg, #141519);
-  transition: color 200ms var(--fhj-out);
+  transition: color var(--fhj-ease) var(--fhj-out);
 }
 
 /* Where you already are, said quietly — a ring, not a fill, because the fan
@@ -9798,7 +9832,7 @@ button.fhj-section:disabled {
   gap: 0.3rem;
   text-align: center;
   pointer-events: none;
-  animation: fhjFanRead 220ms var(--fhj-out) both 60ms;
+  animation: fhjFanRead var(--fhj-ease) var(--fhj-out) both 60ms;
 }
 
 .fhj-fan-eyebrow {
@@ -9909,7 +9943,7 @@ button.fhj-section:disabled {
    which is the whole reason the two are separate elements. */
 
 .fhj-shell {
-  transition: transform 420ms var(--fhj-spring);
+  transition: transform var(--fhj-settle) var(--fhj-spring);
 }
 .fhj-shell.is-reaching {
   transform: translate3d(0, var(--fhj-reach, 34vh), 0);
@@ -9924,7 +9958,7 @@ button.fhj-section:disabled {
   width: 100%;
   border: 0;
   background: transparent;
-  animation: fhjFade 200ms ease;
+  animation: fhjFade var(--fhj-ease) ease;
 }
 .fhj-reach-catch::after {
   content: "Tap to put it back";
@@ -9941,18 +9975,18 @@ button.fhj-section:disabled {
 
 @media (prefers-reduced-motion: reduce) {
   .fhj-fan-read {
-    animation: fhjFade 140ms ease both;
+    animation: fhjFade var(--fhj-quick) ease both;
   }
   .fhj-thumb-add-disc::after {
     animation: none;
     opacity: 0;
   }
   .fhj-fan-item {
-    transition: opacity 120ms linear;
+    transition: opacity var(--fhj-quick) linear;
     transform: translate3d(var(--fx, 0px), var(--fy, 0px), 0) scale(1);
   }
   .fhj-fan-stage.is-in .fhj-fan-item {
-    transition: opacity 120ms linear;
+    transition: opacity var(--fhj-quick) linear;
   }
   .fhj-shell,
   .fhj-fan-disc,
@@ -10144,7 +10178,7 @@ button.fhj-section:disabled {
   100% { transform: scale(1); }
 }
 .fhj-fb-pulse {
-  animation: fhj-fb-pulse 260ms var(--fhj-out);
+  animation: fhj-fb-pulse var(--fhj-ease) var(--fhj-out);
 }
 
 /* A failure moves sideways, not down. Vertical motion reads as "loading"; a
@@ -10158,7 +10192,7 @@ button.fhj-section:disabled {
   78% { transform: translateX(1.5px); }
 }
 .fhj-fb-shake {
-  animation: fhj-fb-shake 400ms var(--fhj-out);
+  animation: fhj-fb-shake var(--fhj-settle) var(--fhj-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -10264,7 +10298,7 @@ button.fhj-section:disabled {
   grid-template-columns: repeat(10, 1fr);
   flex: 1;
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   overflow: hidden;
 }
 .fhj-heat-key {
@@ -10448,7 +10482,7 @@ button.fhj-section:disabled {
 .fhj-ep-dot {
   width: 0.5rem;
   height: 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
 }
 
 /* An episode's shading behind a chart. Positioned from the same date
@@ -10901,7 +10935,7 @@ button.fhj-section:disabled {
   border: var(--fhj-bw) solid var(--fhj-accent-line, #4d5563);
   background: var(--fhj-accent-soft, rgba(120, 150, 190, 0.12));
   color: var(--fhj-ink, #ecebe7);
-  transition: background 200ms var(--fhj-ease), transform 200ms var(--fhj-ease);
+  transition: background var(--fhj-ease) var(--fhj-ease), transform var(--fhj-ease) var(--fhj-ease);
 }
 .fhj-live-sun:hover { background: var(--fhj-card-hover, #2f323b); }
 .fhj-live-sun:active { transform: scale(0.99); }
@@ -10912,7 +10946,7 @@ button.fhj-section:disabled {
   flex: none;
   width: 10px;
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-accent, #7d94b8);
   animation: fhj-live-pulse 2.4s ease-in-out infinite;
 }
@@ -11097,12 +11131,12 @@ button.fhj-section:disabled {
 }
 .fhj-range::-webkit-slider-runnable-track {
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-line, #31343d);
 }
 .fhj-range::-moz-range-track {
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-line, #31343d);
 }
 .fhj-range::-webkit-slider-thumb {
@@ -11111,7 +11145,7 @@ button.fhj-section:disabled {
   width: 22px;
   height: 22px;
   margin-top: -8px;
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-accent, #7d94b8);
   border: 2px solid var(--fhj-bg, #141519);
   box-shadow: 0 0 0 1.5px var(--fhj-line-strong, #464a55);
@@ -11120,7 +11154,7 @@ button.fhj-section:disabled {
   width: 22px;
   height: 22px;
   border: 2px solid var(--fhj-bg, #141519);
-  border-radius: 999px;
+  border-radius: var(--fhj-radius-pill);
   background: var(--fhj-accent, #7d94b8);
   box-shadow: 0 0 0 1.5px var(--fhj-line-strong, #464a55);
 }
@@ -11169,8 +11203,8 @@ button.fhj-section:disabled {
     0 0 0 2px var(--fhj-accent, #8fb0e3),
     0 0 2.5rem 0.25rem color-mix(in srgb, var(--fhj-accent, #8fb0e3) 30%, transparent);
   transition:
-    top 380ms var(--fhj-out), left 380ms var(--fhj-out),
-    width 380ms var(--fhj-out), height 380ms var(--fhj-out);
+    top var(--fhj-enter) var(--fhj-out), left var(--fhj-enter) var(--fhj-out),
+    width var(--fhj-enter) var(--fhj-out), height var(--fhj-enter) var(--fhj-out);
 }
 /* No target on this stop: the whole screen dims and the card is the stop.
    Parked off-screen at zero size rather than unmounted, so the next stop with
@@ -11198,7 +11232,7 @@ button.fhj-section:disabled {
   background: var(--fhj-card, #1e2026);
   border: var(--fhj-bw-strong) solid var(--fhj-accent-soft, rgba(143, 176, 227, 0.15));
   box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.55);
-  animation: fhjTourCard 320ms var(--fhj-out) both;
+  animation: fhjTourCard var(--fhj-enter) var(--fhj-out) both;
 }
 .fhj-tour-card:focus { outline: none; }
 .fhj-tour-card.is-center {
@@ -11438,7 +11472,7 @@ button.fhj-section:disabled {
   font-weight: 700;
   color: var(--fhj-on-accent, #121419);
   background: var(--fhj-accent, #8fb0e3);
-  transition: transform 90ms var(--fhj-out);
+  transition: transform var(--fhj-press) var(--fhj-out);
 }
 .fhj-tour-next:active { transform: scale(0.985); }
 
@@ -11504,7 +11538,7 @@ button.fhj-section:disabled {
   background: var(--fhj-overlay, rgba(10, 11, 14, 0.72));
   backdrop-filter: blur(8px) saturate(115%);
   -webkit-backdrop-filter: blur(8px) saturate(115%);
-  animation: fhjFade 200ms ease;
+  animation: fhjFade var(--fhj-ease) ease;
 }
 
 .fhj-aic {
@@ -11520,7 +11554,7 @@ button.fhj-section:disabled {
   background: var(--fhj-card, #1e2026);
   border: var(--fhj-bw-strong) solid var(--fhj-accent-soft, rgba(143, 176, 227, 0.15));
   box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.55);
-  animation: fhjAicIn 300ms var(--fhj-spring) both;
+  animation: fhjAicIn var(--fhj-enter) var(--fhj-spring) both;
 }
 .fhj-aic:focus { outline: none; }
 
@@ -11627,7 +11661,7 @@ button.fhj-section:disabled {
   font-size: 0.9375rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 120ms var(--fhj-out);
+  transition: transform var(--fhj-quick) var(--fhj-out);
 }
 .fhj-aic-go:active { transform: scale(0.985); }
 
@@ -11768,7 +11802,7 @@ button.fhj-section:disabled {
   place-items: center;
   border-radius: var(--fhj-radius-pill);
   background: var(--fhj-good, #7fbe9e);
-  animation: fhjAicMark 420ms var(--fhj-spring) both;
+  animation: fhjAicMark var(--fhj-settle) var(--fhj-spring) both;
 }
 @keyframes fhjAicMark {
   from { transform: scale(0.5); opacity: 0; }
@@ -11831,7 +11865,7 @@ button.fhj-section:disabled {
   height: 100%;
   border-radius: inherit;
   background: var(--fhj-accent, #8fb0e3);
-  transition: width var(--fhj-ease, 220ms) ease;
+  transition: width var(--fhj-ease, var(--fhj-ease)) ease;
 }
 
 /* ---------- search ----------

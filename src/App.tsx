@@ -282,6 +282,16 @@ function colorFor(value, dir) {
   return steps[3];
 }
 
+/* A rung's fill and the ink that sits on it, as one object.
+
+   Every filled scale in the app — the shared 1-10 rungs, the Daily Pulse, the
+   first-run demo — paints itself from the severity ramp, and the ramp inverts
+   between themes: bright on the dark ground, dark on paper. So the label can
+   never be a fixed colour. `readableInk` is the same call the Bristol step
+   scale has always made inline; this hands both halves to CSS at once so the
+   two cannot drift apart again. */
+const rungInk = (fill) => ({ "--fhj-rung": fill, "--fhj-on-rung": readableInk(fill) });
+
 /* ---------- field builders ---------- */
 
 const F = {
@@ -1844,7 +1854,7 @@ function ScaleInput({ field, value, onChange, ghost = null, hideLabel = false })
               aria-pressed={value === n}
               onClick={() => set(n)}
               className={"fhj-scale-rung" + (filled ? " is-filled" : "") + (value === n ? " is-picked" : "") + (isGhost ? " is-recent" : "")}
-              style={filled ? { "--fhj-rung": colorFor(value, field.dir) } : undefined}
+              style={filled ? rungInk(colorFor(value, field.dir)) : undefined}
             >
               {n}
             </button>
@@ -4728,7 +4738,7 @@ const INSIGHT_RANGES = [
      the second one every line in the screen reads "3 months average". */
   { value: "30", label: "30 days", prose: "last 30 days", days: 30 },
   { value: "90", label: "3 months", prose: "last 3 months", days: 90 },
-  { value: "365", label: "12 months", prose: "last 12 months", days: 365 },
+  { value: "365", label: "1 year", prose: "last 12 months", days: 365 },
   { value: "all", label: "All", prose: "whole journal", days: null },
 ];
 
@@ -16745,7 +16755,7 @@ function PulseScale({ field, value, onSet, disabled }) {
               aria-pressed={value === n}
               onClick={(e) => onSet(n, e.currentTarget)}
               className={"fhj-pulse-rung" + (filled ? " is-filled" : "") + (value === n ? " is-picked" : "")}
-              style={filled ? { "--fhj-rung": colorFor(value, field.dir) } : undefined}>
+              style={filled ? rungInk(colorFor(value, field.dir)) : undefined}>
               {n}
             </button>
           );

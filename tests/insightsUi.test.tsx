@@ -60,7 +60,7 @@ describe("the order it asks its questions in", () => {
     await mountInsights();
     const range = screen.getByRole("radiogroup", { name: "Range" });
     expect([...range.querySelectorAll("button")].map((b) => b.textContent))
-      .toEqual(["30 days", "3 months", "12 months", "All"]);
+      .toEqual(["30 days", "3 months", "1 year", "All"]);
     const trend = screen.getByRole("heading", { name: "Trend" });
     expect(range.compareDocumentPosition(trend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -81,7 +81,7 @@ describe("the range selector", () => {
     expect(daysLogged()).toContain("of 30");
     fireEvent.click(screen.getByRole("radio", { name: "3 months" }));
     await waitFor(() => expect(daysLogged()).toContain("of 90"));
-    fireEvent.click(screen.getByRole("radio", { name: "12 months" }));
+    fireEvent.click(screen.getByRole("radio", { name: "1 year" }));
     await waitFor(() => expect(daysLogged()).toContain("of 365"));
   });
 
@@ -97,10 +97,15 @@ describe("the range selector", () => {
     expect(document.body.textContent).not.toContain("vs previous 3 months");
   });
 
+  /* The control says "1 year" and the sentences say "last 12 months", on
+     purpose. `label` has to survive four segments across a 320px phone without
+     wrapping — "12 months" broke after "12" and made the whole row a line
+     taller than the segmented control under it — while `prose` is read inside
+     a sentence, where "the last 1 year" would be wrong. */
   it("says which window the hero average is over", async () => {
     await mountInsights();
-    fireEvent.click(screen.getByRole("radio", { name: "12 months" }));
-    await waitFor(() => expect(document.body.textContent).toContain("12 months · avg"));
+    fireEvent.click(screen.getByRole("radio", { name: "1 year" }));
+    await waitFor(() => expect(document.body.textContent).toContain("1 year · avg"));
   });
 });
 
