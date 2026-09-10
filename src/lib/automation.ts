@@ -32,9 +32,13 @@
       close themselves and wants nothing else inferred can have exactly that.
 
    5. **It never sends anything anywhere.** Every automation here runs on the
-      device against data the device already has. The only outbound request in
-      this app remains the daily weather one, under its own consent, and no
-      automation may add to it.
+      device against data the device already has. Two features in this app do
+      make outbound requests — the daily weather in lib/context, and the
+      calendar in lib/googleCalendar — and each runs under its own consent,
+      outside this registry, precisely so that clause stays true. No automation
+      may add a request, and neither of those two may become one: the calendar
+      is pulled when somebody presses something, never on a schedule, which is
+      what keeps it out of this file.
 
    The fifth clause is why this file is a registry rather than a framework.
    There is no scheduler, no rules engine, no queue. Each automation is a pure

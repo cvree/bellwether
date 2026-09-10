@@ -198,11 +198,22 @@ import {
   availableStarters, highlightDates, newExperiment, runAll, sanitizeExperiments,
   suggestExperiments,
 } from "./lib/experiments";
+import {
+  DEFAULT_SCHEDULE_CONSENT, forgetTitles, mergeEvents, sanitizeCoverage,
+  sanitizeEvents, sanitizeScheduleConsent, weekStart, weeksIn, widenCoverage,
+} from "./lib/schedule";
+import {
+  applyKinds, buildReadingInput, interpretTitles, readSchedule, sanitizeKindMap,
+  sanitizeReading, titlesToAsk,
+} from "./lib/scheduleAi";
+import * as gcal from "./lib/googleCalendar";
+import { parseIcs } from "./lib/ics";
 import { variables as seriesVariables } from "./lib/series";
 import SunScreen from "./components/SunScreen";
 import ExperimentsScreen from "./components/ExperimentsScreen";
 import EvidenceMeter from "./components/EvidenceMeter";
 import LabsScreen from "./components/LabsScreen";
+import ScheduleScreen from "./components/ScheduleScreen";
 import { ContextStrip, ContextWash, SkyGlyph, TempTrace, washScale } from "./components/DayContext";
 
 /* ============================================================
@@ -6346,7 +6357,8 @@ function HistoryScreen({
   profile, entries, food = [], bowel = [], routine = [], routineItems = [],
   rituals = [], ritualRuns = [],
   openLog, goInsights, goDiary, goExport, goGallery, goSettings, goSetup, goSun, goLabs,
-  goExperiments, goSearch, viewer, syncStatus, context = [], sun = [], labs = [], lit, onClearLit,
+  goExperiments, goSchedule, calendarCount = 0,
+  goSearch, viewer, syncStatus, context = [], sun = [], labs = [], lit, onClearLit,
 }) {
   const tpl = getProfileTemplate(profile);
   const keyField = getField(tpl, tpl.keyMetric);
@@ -6503,6 +6515,16 @@ function HistoryScreen({
           <span>
             <span className="fhj-tile-label block">Experiments</span>
             <span className="fhj-tile-sub block">Ask a question</span>
+          </span>
+        </button>
+        <button type="button" onClick={() => { feedback("nav"); goSchedule(); }}
+          className="fhj-hist-door fhj-pop fhj-cat-symptom">
+          <span className="fhj-tile-icon" aria-hidden>▤</span>
+          <span>
+            <span className="fhj-tile-label block">Your week</span>
+            <span className="fhj-tile-sub block">
+              {calendarCount ? `${calendarCount} in the calendar` : "Bring in a calendar"}
+            </span>
           </span>
         </button>
       </div>
@@ -8387,6 +8409,20 @@ async function buildFullBackup(db) {
        allowed to send. */
     sun: db.sun || [], labs: db.labs || [], experiments: db.experiments || [],
     context: db.context || [],
+    /* The calendar, on exactly the same terms. The events and the range they
+       cover are a record of the days and travel with the journal; the
+       *consent* rides along inside `profile`, which is right — it describes
+       what this journal is allowed to hold, not what a device is allowed to
+       fetch. A restore therefore brings back somebody's weeks without
+       reconnecting anything, and the Google client id (device storage, like the
+       API key) is not in `db` and cannot ride along here either.
+
+       `calendarCoverage` matters as much as the events: a backup that restored
+       three months of calendar with no record of *which* days had been read
+       would report every one of them as a day with nothing booked. */
+    calendar: db.calendar || [], calendarCoverage: db.calendarCoverage,
+    calendarKinds: db.calendarKinds || {},
+    scheduleReading: db.scheduleReading,
     // Past AI observations travel with the journal, but the opt-in does not:
     // turning on a feature that talks to an external service is a decision
     // made per device, by the person holding it, not inherited from a file.
@@ -8440,6 +8476,7 @@ function validateBackup(obj) {
       routine: Array.isArray(obj.routine) ? obj.routine.length : 0,
       sun: Array.isArray(obj.sun) ? obj.sun.length : 0,
       labs: Array.isArray(obj.labs) ? obj.labs.length : 0,
+      calendar: Array.isArray(obj.calendar) ? obj.calendar.length : 0,
       from: dates[0] || null, to: dates[dates.length - 1] || null,
       name: (obj.profile.name || "").trim(),
       exportedAt: obj.exportedAt || null,
@@ -8473,6 +8510,8 @@ async function restoreBackup(obj, setDb) {
        the rituals above are: a backup that cannot restore what it saved is not
        a backup. */
     sun: obj.sun, labs: obj.labs, experiments: obj.experiments, context: obj.context,
+    calendar: obj.calendar, calendarCoverage: obj.calendarCoverage,
+    calendarKinds: obj.calendarKinds, scheduleReading: obj.scheduleReading,
     // `enabled` is deliberately not restored — see buildFullBackup.
     ai: { ...DEFAULT_AI, analysis: obj.ai?.analysis ?? null, dismissed: Array.isArray(obj.ai?.dismissed) ? obj.ai.dismissed : [] },
     ack: true, onboarded: true,
@@ -9893,8 +9932,9 @@ function SyncCard({ engine, status, available, onRefreshConfig }) {
   );
 }
 
-function SettingsScreen({ db, setDb, goHome, goSetup, goImport, goNoteImport, goExport, lockEnabled, onSetupPin, onChangePin, onDisablePin, setAi, onAiSetupComplete, syncEngine, syncStatus, syncConfigured, onRefreshSyncConfig, onTour }) {
+function SettingsScreen({ db, setDb, goHome, goSetup, goImport, goNoteImport, goExport, goSchedule, lockEnabled, onSetupPin, onChangePin, onDisablePin, setAi, onAiSetupComplete, syncEngine, syncStatus, syncConfigured, onRefreshSyncConfig, onTour }) {
   const prefs = db.profile.prefs || DEFAULT_PREFS;
+  const scheduleConnected = db.profile.schedule?.enabled === true && db.profile.schedule?.source !== "off";
   const setPrefs = (patch) => setDb((prev) => ({
     ...prev,
     profile: { ...prev.profile, prefs: { ...(prev.profile.prefs || DEFAULT_PREFS), ...patch }, updatedAt: new Date().toISOString() },
@@ -10069,6 +10109,24 @@ function SettingsScreen({ db, setDb, goHome, goSetup, goImport, goNoteImport, go
           (Google Takeout). Read on this device only — nothing is uploaded.
         </p>
         <Button variant="secondary" block onClick={goImport}>Import wearable data</Button>
+      </Card>
+
+      {/* The calendar. In Settings as well as behind its own screen, because
+          "what is this app connected to" is a question people bring here, and
+          an outbound connection that can only be found by browsing is one the
+          person has not really been told about. The copy says the direction of
+          travel, which is the part that matters: this reads. */}
+      <Card className="mt-3">
+        <div className="fhj-eyebrow mb-2.5">Your calendar</div>
+        <p className="text-sm leading-relaxed mb-3.5" style={{ color: C.sub }}>
+          Put the shape of your week — when things started, how long they ran, how much of the day was
+          left over — beside how you felt. Google Calendar, read-only, or a calendar file that needs no
+          account at all. {scheduleConnected ? "Connected." : "Not connected."} Event titles are not
+          stored unless you switch that on.
+        </p>
+        <Button variant="secondary" block onClick={goSchedule}>
+          {scheduleConnected ? "Your week" : "Bring in a calendar"}
+        </Button>
       </Card>
 
       {/* The other kind of import: the notes somebody was already keeping
@@ -18946,6 +19004,17 @@ function migrateDb(data) {
      makes it the collection most likely to be malformed — a provider changing
      a field name would otherwise put NaN behind every day. */
   d.context = sanitizeContexts(d.context);
+  /* The calendar. Fetched or read out of a file rather than entered, which puts
+     it in the same category as the weather above: most likely of anything here
+     to be malformed, and least visible when it is. Titles are dropped on the
+     way through unless the consent that governs them is switched on — so a
+     backup restored onto a journal that has since turned titles off does not
+     quietly bring them back. */
+  d.profile.schedule = sanitizeScheduleConsent(d.profile.schedule);
+  d.calendar = sanitizeEvents(d.calendar, { titles: !!d.profile.schedule.titles });
+  d.calendarCoverage = sanitizeCoverage(d.calendarCoverage);
+  d.calendarKinds = sanitizeKindMap(d.calendarKinds);
+  d.scheduleReading = sanitizeReading(d.scheduleReading);
   /* Whether the person agreed to any of that. Deliberately in the journal
      rather than beside it, unlike the AI switch: this describes what the
      journal is allowed to *contain*, and restoring a backup should carry it.
@@ -19359,6 +19428,24 @@ export default function App({ viewer = false }) {
      syncing. */
   const dbRef = useRef(db);
   dbRef.current = db;
+  /* The calendar's own transient state. Up here with the rest of it rather than
+     beside the handlers that use it, because everything below the lock flow in
+     this component sits under an early return — a hook there is a conditional
+     hook, which is the exact crash the note further down describes. */
+  const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [scheduleError, setScheduleError] = useState(null);
+  const [scheduleCalendars, setScheduleCalendars] = useState([]);
+  const [readingBusy, setReadingBusy] = useState(false);
+  const [readingError, setReadingError] = useState(null);
+  /* Whether this build or this device has a Google client id at all, which
+     decides which of the two ways in the offer screen shows first. */
+  const [canGoogle, setCanGoogle] = useState(false);
+  useEffect(() => {
+    let live = true;
+    gcal.activeClientId().then((id) => { if (live) setCanGoogle(!!id); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
+
   const [syncStatus, setSyncStatus] = useState(IDLE_STATUS);
   const [syncConfigured, setSyncConfigured] = useState(syncAvailable);
   const engineRef = useRef(null);
@@ -20568,6 +20655,252 @@ export default function App({ viewer = false }) {
     });
   };
 
+  /* ---------- the calendar ----------
+
+     The second thing in this app that reaches outside the device, after the
+     weather, and the first that needs an account. So it gets the same shape the
+     weather got and one clause more:
+
+     · Nothing happens until somebody presses something. There is no background
+       poll, no fetch on launch, and no automation may add one — see the
+       contract at the top of lib/automation, which this deliberately sits
+       outside of.
+     · The direction is inward. Google is asked for a token it issued and a
+       date range; nothing from the journal is part of any request.
+     · Titles are dropped at the parser unless the switch is on, so the words
+       never exist in memory long enough to be written down by accident.
+     · Turning the titles switch off erases the titles already stored, in the
+       same write. A switch that only hid them would be a promise the storage
+       does not keep. */
+
+  const scheduleConsent = profile.schedule || DEFAULT_SCHEDULE_CONSENT;
+
+  /* How far back a pull reaches. Ninety days is a quarter — enough for the
+     weekly comparison to have something to compare against on the first day,
+     and short enough that a first connection is one request per calendar. */
+  const SCHEDULE_WINDOW_DAYS = 90;
+  const scheduleWindow = () => ({
+    start: addDays(todayStr(), -SCHEDULE_WINDOW_DAYS),
+    end: addDays(todayStr(), 14),
+  });
+
+  const patchScheduleConsent = (patch) => {
+    setDb((prev) => {
+      const next = sanitizeScheduleConsent({ ...(prev.profile.schedule || DEFAULT_SCHEDULE_CONSENT), ...patch });
+      /* The titles switch is the one that also rewrites the record — and it has
+         to rewrite it in *two* places. `calendar` holds the titles themselves;
+         `calendarKinds` is the model's cache, and it is keyed *by title*, so
+         leaving it behind would keep a list of somebody's event titles in the
+         journal after they asked for the titles to be gone. That is the promise
+         failing quietly in the one place nobody would look. */
+      const wipe = patch.titles === false;
+      return {
+        ...prev,
+        profile: { ...prev.profile, schedule: next, updatedAt: new Date().toISOString() },
+        calendar: wipe ? forgetTitles(prev.calendar || []) : prev.calendar,
+        calendarKinds: wipe ? {} : prev.calendarKinds,
+      };
+    });
+  };
+
+  /* Fold a freshly read set of events into the journal, along with the range
+     they cover. Coverage is what stops an empty week before the connection
+     reading as a week with nothing in it. */
+  const absorbEvents = (rows, window, calendars) => {
+    setDb((prev) => ({
+      ...prev,
+      calendar: mergeEvents(prev.calendar || [], rows, { ...window, calendars }),
+      calendarCoverage: widenCoverage(prev.calendarCoverage, window),
+      profile: {
+        ...prev.profile,
+        schedule: sanitizeScheduleConsent({
+          ...(prev.profile.schedule || DEFAULT_SCHEDULE_CONSENT),
+          syncedAt: new Date().toISOString(),
+        }),
+        updatedAt: new Date().toISOString(),
+      },
+    }));
+  };
+
+  const connectGoogle = async () => {
+    setScheduleError(null);
+    setScheduleBusy(true);
+    try {
+      await gcal.connect();
+      const cals = await gcal.listCalendars();
+      setScheduleCalendars(cals);
+      const chosen = (scheduleConsent.calendars?.length
+        ? scheduleConsent.calendars
+        : cals.filter((c) => c.selected).map((c) => c.id)) || [];
+      const window = scheduleWindow();
+      const { events, errors } = await gcal.fetchEvents(chosen.length ? chosen : ["primary"], window, {
+        titles: !!scheduleConsent.titles,
+      });
+      absorbEvents(events, window, chosen);
+      setDb((prev) => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          schedule: sanitizeScheduleConsent({
+            ...(prev.profile.schedule || DEFAULT_SCHEDULE_CONSENT),
+            enabled: true, source: "google",
+            calendars: chosen.length ? chosen : undefined,
+            askedAt: new Date().toISOString(),
+          }),
+        },
+      }));
+      if (errors.length) setScheduleError(`${errors.length} calendar${errors.length === 1 ? "" : "s"} couldn't be read. The rest came through.`);
+      feedback("save");
+    } catch (e) {
+      setScheduleError(e?.message || "Couldn't connect to Google Calendar.");
+    } finally {
+      setScheduleBusy(false);
+    }
+  };
+
+  const saveClientId = async (id) => {
+    try {
+      await gcal.saveClientId(id);
+      setCanGoogle(true);
+      await connectGoogle();
+    } catch {
+      setScheduleError("Couldn't save that client id on this device.");
+    }
+  };
+
+  const importCalendarFile = async (file) => {
+    setScheduleError(null);
+    setScheduleBusy(true);
+    try {
+      const text = await file.text();
+      const window = scheduleWindow();
+      const calendarId = `file:${file.name.slice(0, 60)}`;
+      const result = parseIcs(text, { ...window, titles: !!scheduleConsent.titles, calendarId });
+      if (!result.events.length) {
+        setScheduleError(
+          result.read
+            ? "That file was read, but nothing in it falls in the last three months."
+            : "That doesn't look like a calendar file. Look for one ending in .ics."
+        );
+        return;
+      }
+      absorbEvents(result.events, window, [calendarId]);
+      setDb((prev) => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          schedule: sanitizeScheduleConsent({
+            ...(prev.profile.schedule || DEFAULT_SCHEDULE_CONSENT),
+            enabled: true, source: "file", askedAt: new Date().toISOString(),
+          }),
+        },
+      }));
+      feedback("save");
+      toast({
+        text: `${result.events.length} ${result.events.length === 1 ? "entry" : "entries"} read from ${result.name || file.name}`,
+        cat: "fhj-cat-symptom",
+      });
+    } catch {
+      setScheduleError("That file couldn't be read.");
+    } finally {
+      setScheduleBusy(false);
+    }
+  };
+
+  const refreshSchedule = async () => {
+    if (scheduleConsent.source === "file") {
+      setScheduleError("This calendar came from a file. Export a fresh one and open it to bring in new days.");
+      return;
+    }
+    setScheduleError(null);
+    setScheduleBusy(true);
+    try {
+      if (!gcal.hasToken()) {
+        /* A silent ask first — after the first consent Google will usually hand
+           one back without a window. Only if that fails is somebody interrupted. */
+        try { await gcal.connect({ silent: true }); } catch { await gcal.connect(); }
+      }
+      const chosen = scheduleConsent.calendars?.length ? scheduleConsent.calendars : ["primary"];
+      const window = scheduleWindow();
+      const { events, errors } = await gcal.fetchEvents(chosen, window, { titles: !!scheduleConsent.titles });
+      absorbEvents(events, window, chosen);
+      if (errors.length) setScheduleError(`${errors.length} calendar${errors.length === 1 ? "" : "s"} couldn't be read. The rest came through.`);
+      feedback("save");
+    } catch (e) {
+      setScheduleError(e?.message || "Couldn't reach Google Calendar.");
+    } finally {
+      setScheduleBusy(false);
+    }
+  };
+
+  const forgetSchedule = () => {
+    gcal.forgetToken();
+    setScheduleCalendars([]);
+    setScheduleError(null);
+    setDb((prev) => ({
+      ...prev,
+      calendar: [],
+      calendarCoverage: undefined,
+      calendarKinds: {},
+      scheduleReading: undefined,
+      profile: {
+        ...prev.profile,
+        schedule: { ...DEFAULT_SCHEDULE_CONSENT },
+        updatedAt: new Date().toISOString(),
+      },
+    }));
+    toast({ text: "Calendar disconnected and its entries deleted", icon: "trash", cat: "fhj-cat-symptom" });
+  };
+
+  /* A hand correction. Permanent by design: `kindSource: "user"` is what
+     mergeEvents carries across every future pull. */
+  const correctEventKind = (id, kind) => {
+    setDb((prev) => ({
+      ...prev,
+      calendar: (prev.calendar || []).map((e) =>
+        (e.id === id ? { ...e, kind, kindSource: "user" } : e)),
+    }));
+  };
+
+  const runScheduleReading = async () => {
+    setReadingError(null);
+    setReadingBusy(true);
+    try {
+      const conn = await loadConnection();
+      if (!conn) { setReadingError("No AI connection is set up. Add one in Settings."); return; }
+      const weeks = weeksIn(db.calendar || [], db.calendarCoverage, {
+        startsOn: scheduleConsent.weekStartsOn === 0 ? 0 : 1,
+        until: todayStr(),
+      });
+      /* Categorising first, when it is allowed: a reading of weeks that are
+         forty percent "Other" is a reading of very little. */
+      if (scheduleConsent.aiKinds && scheduleConsent.titles) {
+        const asks = titlesToAsk(db.calendar || []);
+        if (asks.length) {
+          const map = await interpretTitles(conn, asks).catch(() => ({}));
+          if (Object.keys(map).length) {
+            setDb((prev) => ({
+              ...prev,
+              calendar: applyKinds(prev.calendar || [], map),
+              calendarKinds: { ...(prev.calendarKinds || {}), ...map },
+            }));
+          }
+        }
+      }
+      const key = getField(tpl, tpl.keyMetric);
+      const input = buildReadingInput(weeks, entries, key
+        ? { key: key.k, label: key.label, dir: key.dir }
+        : undefined);
+      const reading = await readSchedule(conn, input);
+      setDb((prev) => ({ ...prev, scheduleReading: reading }));
+      feedback("save");
+    } catch (e) {
+      setReadingError(e?.message || "That didn't come back. Try again in a moment.");
+    } finally {
+      setReadingBusy(false);
+    }
+  };
+
   /* ---------- experiments ---------- */
 
   const createExperiment = (input) => {
@@ -20707,6 +21040,7 @@ export default function App({ viewer = false }) {
 
   const sunSessions = db.sun || [];
   const contextRows = db.context || [];
+  const calendarRows = db.calendar || [];
   const labRows = db.labs || [];
   const todayContext = contextOn(contextRows, todayStr());
   /* Where the sun is drawn from. A place typed by hand wins over the last
@@ -20728,6 +21062,8 @@ export default function App({ viewer = false }) {
     sun: sunSessions,
     context: contextRows,
     labs: labRows,
+    calendar: calendarRows,
+    calendarCoverage: db.calendarCoverage,
   };
   /* Deliberately not memoised, and deliberately not computed on every screen.
 
@@ -20843,7 +21179,8 @@ export default function App({ viewer = false }) {
       syncEngine={engineRef.current} syncStatus={syncStatus} syncConfigured={syncConfigured}
       onRefreshSyncConfig={() => setSyncConfigured(syncAvailable())}
       onAiSetupComplete={() => { setAiAutoRun((n) => n + 1); setScreen("dashboard"); }}
-      goImport={() => setScreen("fitbit")} goNoteImport={() => setScreen("import")} lockEnabled={!!lock}
+      goImport={() => setScreen("fitbit")} goNoteImport={() => setScreen("import")}
+      goSchedule={() => setScreen("schedule")} lockEnabled={!!lock}
       onSetupPin={() => setLockFlow("setup")} onChangePin={() => setLockFlow("change-verify")}
       onDisablePin={() => setLockFlow("disable-verify")}
       onTour={() => { feedback("nav"); setTourDone(false); setTour(true); setScreen("dashboard"); }} />;
@@ -20963,6 +21300,36 @@ export default function App({ viewer = false }) {
         onFeedback={feedback}
       />
     );
+  } else if (screen === "schedule") {
+    content = (
+      <ScheduleScreen
+        consent={profile.schedule || DEFAULT_SCHEDULE_CONSENT}
+        events={calendarRows}
+        coverage={db.calendarCoverage}
+        entries={entries}
+        today={todayStr()}
+        keyField={getField(tpl, tpl.keyMetric) || undefined}
+        calendars={scheduleCalendars}
+        viewer={viewer}
+        busy={scheduleBusy}
+        error={scheduleError}
+        canGoogle={canGoogle}
+        aiReady={!!db.ai?.enabled && !viewer}
+        reading={db.scheduleReading}
+        readingBusy={readingBusy}
+        readingError={readingError}
+        onConnectGoogle={connectGoogle}
+        onSaveClientId={saveClientId}
+        onImportFile={importCalendarFile}
+        onPatchConsent={patchScheduleConsent}
+        onRefresh={refreshSchedule}
+        onForget={forgetSchedule}
+        onCorrectKind={correctEventKind}
+        onRunReading={runScheduleReading}
+        onHighlight={illuminate}
+        onFeedback={feedback}
+      />
+    );
   } else if (screen === "calendar") {
     content = <CalendarScreen profile={profile} entries={entries} openLog={goToLog} />;
   } else if (screen === "history") {
@@ -20978,6 +21345,8 @@ export default function App({ viewer = false }) {
         goSettings={() => setScreen("settings")} goSetup={() => setScreen("setup")}
         goSun={() => setScreen("sun")} goLabs={() => setScreen("labs")}
         goExperiments={() => setScreen("experiments")}
+        goSchedule={() => setScreen("schedule")}
+        calendarCount={calendarRows.length}
         goSearch={() => setScreen("search")}
         context={contextRows} sun={sunSessions} labs={labRows}
         lit={lit} onClearLit={clearLit} />
@@ -21022,6 +21391,7 @@ export default function App({ viewer = false }) {
     pack: "Appointment Pack", history: "History", search: "Search",
     fitbit: "Import Health Data", import: "Import Your Notes",
     sun: "Sun & Outdoor Light", experiments: "Experiments", labs: "Labs & Measurements",
+    schedule: "Your Week",
     report: reportParams.savedId ? "Saved Report" : (reportParams.type === "month" ? "Monthly Report" : "Weekly Report"),
   }[screen] || APP_NAME;
 
@@ -21234,7 +21604,8 @@ export const __internals = {
   packHistoryDays, TEMPLATES, reportSummaryRows,
   parseGoogleFitDailyCSV, parseGoogleFitHourlyCSV, parseGoogleFitSessionJSON,
   parseFitbitFiles, mergeFitbitData, kgToLb,
-  validateBackup, buildFullBackup, storageUsage, photosOlderThan, scrubPhotoRefs, photoLegendRows,
+  validateBackup, buildFullBackup, restoreBackup,
+  storageUsage, photosOlderThan, scrubPhotoRefs, photoLegendRows,
   lastValueFor, depsFor,
   wideTable, toCSV, metaCols, serialize, buildPhotoItems, blankProfile,
   entriesFor, calcStreak, avgWindow, SCHEMA_VERSION,

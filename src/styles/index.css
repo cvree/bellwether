@@ -12462,3 +12462,581 @@ button.fhj-section:disabled {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* ---------- the week around the week ----------
+
+   Three things this section has to draw that nothing else in the app does.
+
+   · **A day with no calendar behind it, told apart from a day with nothing in
+     it.** An empty column and an unknown column look identical unless one of
+     them is deliberately drawn as absent, and the difference is the whole
+     honesty of the feature — otherwise the first week after connecting reads
+     as a fortnight of doing nothing.
+   · **Load by demand, in three tones.** The seven-day figure answers "how much
+     of this week was owed to somebody", so it carries three tones rather than
+     ten hues. See the note on WeekBar.
+   · **Ten categories, once, with their names beside them.** Only in the strip
+     and the day list, where each hue has a word next to it. */
+
+.fhj-sch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fhj-gap);
+  padding-bottom: var(--fhj-gap-xl);
+}
+
+.fhj-sch-error {
+  border-radius: var(--fhj-radius-sm);
+  border: var(--fhj-bw) solid var(--fhj-line, #31343d);
+  background: var(--fhj-danger-bg, rgba(214, 122, 122, 0.14));
+  color: var(--fhj-danger-ink, #e8a5a5);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* ---------- moving between weeks ---------- */
+
+.fhj-sch-weeknav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fhj-gap-sm);
+}
+
+.fhj-sch-weeknav-mid {
+  flex: 1;
+  text-align: center;
+}
+
+.fhj-sch-weeknav-label {
+  font-family: var(--fhj-font-display);
+  font-size: 1.0625rem;
+  color: var(--fhj-ink, #ecebe7);
+}
+
+.fhj-sch-weeknav-sub {
+  font-size: 0.75rem;
+  color: var(--fhj-sub, #adafb8);
+}
+
+/* ---------- the seven columns ---------- */
+
+.fhj-sch-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.375rem;
+  height: 148px;
+  padding: var(--fhj-gap-sm);
+  border-radius: var(--fhj-radius);
+  border: var(--fhj-bw) solid var(--fhj-line, #31343d);
+  background: var(--fhj-card, #1e2026);
+}
+
+.fhj-sch-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  position: relative;
+  border-radius: var(--fhj-radius-sm);
+  transition: background var(--fhj-quick) var(--fhj-curve, ease);
+}
+
+.fhj-sch-col[aria-pressed="true"] {
+  background: var(--fhj-faint, #2a2d35);
+}
+
+.fhj-sch-col[disabled] {
+  cursor: default;
+}
+
+/* The track is the full height every day is measured against, so a light day
+   and a heavy day are read against the same ceiling rather than against each
+   other. */
+.fhj-sch-col-track {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+  border-radius: var(--fhj-radius-sm);
+  background: var(--fhj-faint, #2a2d35);
+  overflow: hidden;
+}
+
+.fhj-sch-col-stack {
+  display: flex;
+  flex-direction: column-reverse;
+  width: 100%;
+  min-height: 2px;
+  border-radius: var(--fhj-radius-sm);
+  overflow: hidden;
+  transition: height var(--fhj-enter) var(--fhj-curve, ease);
+}
+
+.fhj-sch-seg {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+}
+
+.fhj-sch-seg[data-demand="obligation"] { background: var(--fhj-accent, #8fb0e3); }
+.fhj-sch-seg[data-demand="neutral"] { background: var(--fhj-clay, #d9a183); }
+.fhj-sch-seg[data-demand="restorative"] { background: var(--fhj-sage, #7fbe9e); }
+
+/* A day the calendar covered, with nothing in it: a floor line, so "clear" is
+   a mark on the page rather than the absence of one. */
+.fhj-sch-col-clear {
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  bottom: 0;
+  height: 2px;
+  border-radius: var(--fhj-radius-pill);
+  background: var(--fhj-line-strong, #464a55);
+}
+
+/* A day this journal has no calendar for. Hatched rather than empty, because
+   "unknown" and "nothing" must not look the same. */
+.fhj-sch-col-unknown {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--fhj-line, #31343d) 0 2px,
+    transparent 2px 6px
+  );
+}
+
+.fhj-sch-col-day {
+  font-size: 0.6875rem;
+  color: var(--fhj-sub, #adafb8);
+  line-height: 1;
+}
+
+.fhj-sch-col[data-today="true"] .fhj-sch-col-day {
+  color: var(--fhj-accent-text, #a6c3ea);
+  font-weight: 600;
+}
+
+/* An all-day entry books no minutes, so it cannot show up as height. It gets
+   a dot instead — present, and not pretending to be twenty-four hours. */
+.fhj-sch-col-allday {
+  position: absolute;
+  top: 0.125rem;
+  width: 4px;
+  height: 4px;
+  border-radius: var(--fhj-radius-pill);
+  background: var(--fhj-lavender, #b49ee0);
+}
+
+.fhj-sch-sentence {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--fhj-ink, #ecebe7);
+  margin: 0;
+}
+
+.fhj-sch-uncovered {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--fhj-sub, #adafb8);
+  margin: 0;
+}
+
+/* ---------- what the week was made of ---------- */
+
+.fhj-sch-kindbar {
+  display: flex;
+  height: 14px;
+  border-radius: var(--fhj-radius-pill);
+  overflow: hidden;
+  background: var(--fhj-faint, #2a2d35);
+}
+
+.fhj-sch-kindbar-seg {
+  display: block;
+  min-width: 3px;
+}
+
+.fhj-sch-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.75rem;
+  list-style: none;
+  margin: var(--fhj-gap-sm) 0 0;
+  padding: 0;
+}
+
+.fhj-sch-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.fhj-sch-legend-name { color: var(--fhj-sub, #adafb8); }
+.fhj-sch-legend-val { color: var(--fhj-ink, #ecebe7); }
+
+/* The ten categories. Used only where a word sits beside the colour — the
+   legend, the day list and the correction sheet. Two pairs share a hue on
+   purpose: with the label right there, ten distinguishable hues would cost
+   more in contrast than they buy in recognition. */
+.fhj-sch-event-dot,
+.fhj-sch-kindbar-seg { background: var(--fhj-sub, #adafb8); }
+[data-kind="work"] { background: var(--fhj-accent, #8fb0e3); }
+[data-kind="focus"] { background: var(--fhj-chart2, #dcbb78); }
+[data-kind="social"] { background: var(--fhj-clay, #d9a183); }
+[data-kind="family"] { background: var(--fhj-chart3, #7bc2b6); }
+[data-kind="exercise"] { background: var(--fhj-sage, #7fbe9e); }
+[data-kind="health"] { background: var(--fhj-lavender, #b49ee0); }
+[data-kind="travel"] { background: var(--fhj-warn, #d9a183); }
+[data-kind="admin"] { background: var(--fhj-line-strong, #464a55); }
+[data-kind="rest"] { background: var(--fhj-good, #7fbe9e); }
+[data-kind="other"] { background: var(--fhj-sub, #adafb8); }
+
+/* ---------- one day, unfolded ---------- */
+
+.fhj-sch-day {
+  border-radius: var(--fhj-radius);
+  border: var(--fhj-bw) solid var(--fhj-line, #31343d);
+  background: var(--fhj-card, #1e2026);
+  padding: var(--fhj-gap-sm);
+}
+
+.fhj-sch-day-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--fhj-gap-sm);
+}
+
+.fhj-sch-day-sum {
+  font-size: 0.8125rem;
+  color: var(--fhj-sub, #adafb8);
+  line-height: 1.5;
+}
+
+.fhj-sch-day-empty {
+  font-size: 0.8125rem;
+  color: var(--fhj-sub, #adafb8);
+  margin: var(--fhj-gap-sm) 0 0;
+}
+
+.fhj-sch-events {
+  list-style: none;
+  margin: var(--fhj-gap-sm) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fhj-sch-event {
+  width: 100%;
+  min-height: var(--fhj-tap);
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  text-align: left;
+  border: var(--fhj-bw) solid transparent;
+  border-radius: var(--fhj-radius-sm);
+  background: var(--fhj-faint, #2a2d35);
+  color: var(--fhj-ink, #ecebe7);
+  cursor: pointer;
+  transition: border-color var(--fhj-quick) var(--fhj-curve, ease);
+}
+
+.fhj-sch-event:hover:not([disabled]) {
+  border-color: var(--fhj-line-strong, #464a55);
+}
+
+/* Declined, or marked free. It is in the calendar and it is not a commitment,
+   and the list has to say both at once. */
+.fhj-sch-event[data-skipped="true"] {
+  opacity: 0.55;
+}
+
+.fhj-sch-event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--fhj-radius-pill);
+  flex: 0 0 auto;
+}
+
+.fhj-sch-event-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.fhj-sch-event-name {
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fhj-sch-event-meta {
+  font-size: 0.6875rem;
+  color: var(--fhj-sub, #adafb8);
+}
+
+.fhj-sch-event-kind {
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--fhj-radius-pill);
+  background: var(--fhj-bg, #141519);
+  color: var(--fhj-sub, #adafb8);
+  flex: 0 0 auto;
+}
+
+/* Where the category came from. A person's own correction is the only one
+   worth marking, because it is the only one that outlives a re-sync. */
+.fhj-sch-event-kind[data-source="user"] {
+  color: var(--fhj-accent-text, #a6c3ea);
+}
+
+.fhj-sch-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fhj-gap-xs);
+}
+
+/* ---------- comparisons ---------- */
+
+.fhj-sch-against { flex: 0 0 auto; }
+
+.fhj-sch-deltas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.fhj-sch-delta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--fhj-gap-sm);
+  /* No min-height: this row is read, never tapped, and a floor between 24 and
+     44px is the shape the tap-target sweep exists to catch. Padding gives it
+     the same air without claiming to be a control. */
+  padding: 0.4375rem 0;
+  border-bottom: var(--fhj-bw) solid var(--fhj-line, #31343d);
+}
+
+.fhj-sch-delta:last-child { border-bottom: 0; }
+
+.fhj-sch-delta-label {
+  font-size: 0.8125rem;
+  color: var(--fhj-sub, #adafb8);
+}
+
+/* Deliberately not red and green. More booked time is not a failure and fewer
+   commitments is not a win — this app has no opinion about how full a week
+   should be, and a colour would give it one. */
+.fhj-sch-delta-val {
+  font-size: 0.8125rem;
+  color: var(--fhj-ink, #ecebe7);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- observations ---------- */
+
+.fhj-sch-obs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fhj-gap-sm);
+}
+
+.fhj-sch-ob {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem;
+  border-radius: var(--fhj-radius);
+  border: var(--fhj-bw) solid var(--fhj-line, #31343d);
+  background: var(--fhj-card, #1e2026);
+  color: var(--fhj-ink, #ecebe7);
+  cursor: pointer;
+  transition: border-color var(--fhj-quick) var(--fhj-curve, ease);
+}
+
+.fhj-sch-ob:hover { border-color: var(--fhj-line-strong, #464a55); }
+
+.fhj-sch-ob-head {
+  font-family: var(--fhj-font-display);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.fhj-sch-ob-detail {
+  font-size: 0.71875rem;
+  line-height: 1.6;
+  color: var(--fhj-sub, #adafb8);
+  margin-top: 0.375rem;
+}
+
+.fhj-sch-ob-go {
+  font-size: 0.6875rem;
+  color: var(--fhj-accent-text, #a6c3ea);
+  margin-top: 0.5rem;
+}
+
+/* ---------- the model's reading ---------- */
+
+.fhj-sch-ai-offer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fhj-gap-sm);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.fhj-sch-reading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fhj-gap-sm);
+  margin-top: var(--fhj-gap-sm);
+}
+
+.fhj-sch-reading-summary {
+  font-family: var(--fhj-font-display);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.fhj-sch-reading-ob {
+  padding-top: var(--fhj-gap-sm);
+  border-top: var(--fhj-bw) solid var(--fhj-line, #31343d);
+}
+
+.fhj-sch-reading-head {
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.fhj-sch-reading-evidence {
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--fhj-sub, #adafb8);
+  margin-top: 0.25rem;
+}
+
+.fhj-sch-reading-meta {
+  font-size: 0.6875rem;
+  color: var(--fhj-sub, #adafb8);
+  margin-top: 0.375rem;
+}
+
+/* ---------- the offer, before anything is connected ---------- */
+
+.fhj-sch-promise {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fhj-gap-xs);
+}
+
+.fhj-sch-promise-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.fhj-sch-promise-list li {
+  padding-left: 0.875rem;
+  position: relative;
+}
+
+.fhj-sch-promise-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--fhj-radius-pill);
+  background: var(--fhj-accent, #8fb0e3);
+}
+
+.fhj-sch-routes { width: 100%; }
+
+.fhj-sch-steps {
+  list-style: none;
+  margin: var(--fhj-gap-sm) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.fhj-sch-steps li {
+  display: flex;
+  gap: 0.625rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.fhj-sch-step-n {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin-top: 0.125rem;
+  border-radius: var(--fhj-radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: var(--fhj-accent-soft, rgba(143, 176, 227, 0.15));
+  color: var(--fhj-accent-text, #a6c3ea);
+}
+
+/* The file input is driven by the button beside it; hiding it with
+   `display:none` would take it out of the accessibility tree along with its
+   label, so it is clipped instead. */
+.fhj-sch-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.fhj-sch-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--fhj-gap-sm);
+  margin-top: var(--fhj-gap-sm);
+}
+
+.fhj-sheet-title {
+  font-family: var(--fhj-font-display);
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--fhj-ink, #ecebe7);
+}

@@ -12,6 +12,8 @@ import type { SunProfile, SunSession } from "../lib/sun";
 import type { AutomationSettings } from "../lib/automation";
 import type { Ritual, RitualReview, RitualRun } from "../lib/rituals";
 import type { Cadence } from "../lib/cadence";
+import type { CalEvent, Coverage, ScheduleConsent } from "../lib/schedule";
+import type { KindMap, ScheduleReading } from "../lib/scheduleAi";
 
 /* ---------- questions ---------- */
 
@@ -173,6 +175,10 @@ export interface TrackingSetup {
   /** Skin type, usual exposure and waking time — the three answers the vitamin
       D estimate personalises on. Asked once, all refusable. See lib/sun. */
   sun?: SunProfile;
+  /** Whether a calendar is connected, where from, which calendars, whether
+      titles are kept, and what a model is allowed to be shown. Off until
+      somebody switches it on. See src/lib/schedule.ts. */
+  schedule?: ScheduleConsent;
   /** Which of the app's automations are allowed to run. Absent means nobody has
       expressed a view and each falls back to its own default. See
       lib/automation for the contract every one of them runs under. */
@@ -555,6 +561,22 @@ export interface AppDatabase extends OnboardingState {
   /** One environmental record per day, fetched with permission. Weather, not
       whereabouts — see the header of src/lib/context.ts. */
   context?: DayContext[];
+  /** The calendar: what this person agreed to, with permission. Shape, not
+      words — titles are stored only under their own switch. See the header of
+      src/lib/schedule.ts. */
+  calendar?: CalEvent[];
+  /** Which days the calendar has actually been read for. The single most
+      load-bearing field in the feature: without it an empty week and a week
+      before the connection are the same fact, and every weekly average is
+      computed against a fiction. */
+  calendarCoverage?: Coverage;
+  /** Categories a model worked out for event titles, cached by title so the
+      same one is never sent twice. Only ever populated when both the titles
+      switch and the categorising switch are on. */
+  calendarKinds?: KindMap;
+  /** The last weekly reading a model wrote, kept so it survives a reload and
+      can say what it was based on. */
+  scheduleReading?: ScheduleReading;
   schemaVersion?: number;
 }
 
@@ -572,6 +594,8 @@ export type { HealthEpisode };
    the one import for the data contract. */
 export type { Cadence, CadencePause, CadenceUnit } from "../lib/cadence";
 export type { ContextConsent, DayContext };
+export type { CalEvent, Coverage, EventKind, ScheduleConsent } from "../lib/schedule";
+export type { KindMap, ScheduleReading } from "../lib/scheduleAi";
 export type { Experiment };
 export type { LabResult };
 export type { SunProfile, SunSession };

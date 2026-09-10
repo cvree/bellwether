@@ -1,5 +1,216 @@
 # Changelog
 
+## 1.38.0
+
+Your calendar is the only record most people keep of what they agreed to. This
+puts its shape beside how you felt.
+
+### The half of a bad fortnight nobody writes down
+
+A journal can tell you that the second week of March was the worst week since
+January. It cannot tell you that the second week of March had nineteen hours
+booked, no clear day, four evenings out, and a Tuesday with seven things on it
+back to back — because nobody is going to rate their own meeting density at
+bedtime, and if they did the rating would be a guess.
+
+The calendar already knows. Every one of those numbers is sitting in it, has
+been for months, and has never once been part of the record this app keeps.
+
+So: **the week around the week.** `lib/context` brought in the day that
+happened *to* somebody — the heat, the pressure drop, the pollen. This brings in
+the week they *agreed to*, and the two are deliberately different modules,
+because they are different kinds of fact and they fail in different ways.
+
+### Shape first, words second
+
+The load-bearing decision, and the one everything else follows from: **what this
+journal keeps by default is the shape of a week, not what anything was called.**
+
+A work calendar is full of other people's names, interview subjects, therapy
+slots and legal matters. A health record that swallows them whole — and then
+syncs them, and then offers them to a model — is a liability built out of a
+convenience. So event titles are a separate, explicit switch, off until somebody
+turns it on, and turning it back off erases the ones already stored in the same
+write. A switch that only hid them would be a promise the storage does not keep.
+
+That would normally cost the whole feature, because the category is the useful
+part and the category is made of the words. It doesn't, because of the second
+decision: **every event is classified as it arrives, while the title is still in
+hand, and the title is then dropped.** A journal running with titles off still
+knows Tuesday held four hours of meetings and an hour of exercise. It just
+cannot tell you who they were with.
+
+### Two ways in, and one of them needs no account
+
+**Google Calendar**, read-only, straight from the browser with no server in the
+middle. Two narrow scopes — the list of your calendars, and the events on them —
+rather than the one broad one, so the consent screen names something a person
+can actually evaluate. The app cannot create, move or delete an event even by
+mistake. The access token is never stored: it lives in a module variable, dies
+with the tab, and is worth an hour. And the direction of travel is the whole
+argument — Google is sent a token they issued minutes ago and a date range.
+Nothing from the journal is part of any request. It is the same shape as the
+weather: a fetch that brings the outside world in.
+
+**A calendar file.** Every calendar can export an `.ics` — Google, Apple,
+Outlook, Fastmail, anything self-hosted. Opened here, parsed on the device,
+nothing signed into, works with no network at all. This is the floor under the
+whole feature, for the same reason the wearable importer is a file: a file is
+something somebody chose to hand over, once, that keeps working when a provider
+changes its terms.
+
+Three things make an `.ics` harder than it looks, and all three are the
+difference between "parses" and "correct". Lines are folded, so a naive
+line-by-line read truncates long titles. A time can be a UTC instant, a wall
+time in a named zone, or a floating local time, and all three have to end up on
+*this* device's clock (`Intl` resolves the named zones; the fixed point takes
+two passes so an hour either side of a DST change lands right). And a repeating
+event appears **once** — Google exports the rule, not the three hundred
+instances. A parser that ignores `RRULE` loses almost every meeting on a working
+calendar, which would make the feature report that a busy person has an empty
+week. So the rule is expanded, inside the window, with `EXDATE` exceptions and
+individually-moved instances applied — overrides are collected *before* the
+master rule is expanded, or every rescheduled meeting is double-booked.
+
+### The three things it would have got quietly wrong
+
+Each of these produces a plausible-looking record rather than an error, which is
+why each is pinned by name in the tests.
+
+**A day the calendar never covered is not a day with nothing in it.** Connecting
+today and reporting that the person had a completely free year until yesterday
+is the single worst thing this feature could do, and an empty week looks
+identical either way. So coverage is recorded when a pull happens, every weekly
+average is computed over covered days only, and the seven-day figure draws an
+uncovered day hatched rather than empty — the eye has to be able to tell them
+apart.
+
+**An all-day entry is not twenty-four booked hours.** A week off would otherwise
+be the busiest week of the year. All-day entries book zero minutes and are
+counted separately; a day holding only one says "all day, nothing timed" rather
+than "0m".
+
+**A commitment is a thing you agreed to.** An invitation declined is not one. An
+event marked *free* is a note in a grid, not a claim on the day. Both are still
+shown in the day list, dimmed, because they are in the calendar — they are just
+not in the arithmetic.
+
+Two smaller ones, both found by the tests rather than by reading: an event
+crossing midnight is **split at midnight** (a 22:00–06:00 flight is two hours on
+Friday and six on Saturday, not eight on Friday), and back-to-back runs are
+counted over the *events* rather than over merged busy blocks — merging them
+erases the very adjacency being measured, so the most relentless day of
+somebody's life reported as one event.
+
+### And compare
+
+Three comparisons, never merged into a score, because "how was this week" is
+three different questions:
+
+- **Against last week** — what changed. Compared per covered day, so a short
+  week is not counted as a quiet one.
+- **Against your usual week** — the median of this person's own weeks, taken
+  field by field rather than week by week. A normal amount of booked time
+  arranged into two enormous days is a genuinely unusual week, and a mean over
+  totals hides it completely.
+- **Beside how you felt** — the only one that touches health, and the one that
+  gets the full non-causal treatment. Every sentence is a count of the person's
+  own days or weeks with the sample printed alongside; nothing appears below
+  twenty paired days or eight weeks; the whole vocabulary lives in
+  `SCHEDULE_COPY` so the causal-language audit has one file to read. Tapping one
+  lights those days up everywhere else in the app, which is the difference
+  between saying something interesting and showing where it came from.
+
+There is no healthy number of meetings and this feature never implies one. Every
+schedule metric is `neutral`, the comparison rows are deliberately not red and
+green, and the prompt forbids the model from telling anybody to work less.
+
+### What a model is for here, and what it is not
+
+Two requests, two payloads, two switches — because merging them would mean one
+consent covering two very different things leaving the device.
+
+**Sorting titles the local table couldn't place.** Sends a de-duplicated list of
+titles with a duration and a head count each, and **no dates**, so the list
+cannot be reassembled into a diary of somebody's movements. Capped at fifty:
+four hundred distinct titles is a fingerprint, and the ones that recur are the
+ones that move the numbers. Answers are cached by title, so a daily standup is
+categorised once, ever. Only available when titles are being kept — the switch
+cannot be left standing on its own, because it would provably do nothing.
+
+**Reading the weeks.** Sends numbers only — counts and minutes per week, weeks
+as ordinals rather than dates, and the person's own weekly rating if they picked
+a metric. No titles, no dates, no names. Available whether or not titles are
+kept, because the payload is numbers either way.
+
+Neither runs on its own; both describe what they are about to send before they
+send it; both are scrubbed by the same `scrubCausalLanguage` the pattern analysis
+uses, because a model asked about a busy fortnight will reach for "because"
+without being asked to. And when there is no model connected at all, the local
+sentence is written from arithmetic — which most weeks is the more useful of the
+two, because it is checkable rather than trusted.
+
+### Where it plugs in
+
+The calendar meets the same contract as everything else in the journal: one
+number per day, a label, a unit and a direction. So nineteen new metrics —
+booked time, commitments, first to last, longest run without a break, longest
+free stretch, time with others, and per-category minutes — turn up in the trend
+chart, the metric picker, the relationship explorer and the experiment engine
+without any of them learning what a calendar is. Experiments weight them level
+with the weather, and for the same reason: it is a factor the person did not
+type in, so a comparison against it costs nothing they have not already
+collected.
+
+### Notes for whoever is next
+
+- **The hooks must live above the lock-flow early returns.** Putting the six
+  pieces of schedule state next to the handlers that use them crashed 27 tests
+  with "rendered more hooks than during the previous render" — the exact bug the
+  comment above `seriesSource` has been warning about since 1.0. It is a real
+  trap and it is still there.
+- **`lib/automation`'s fifth clause was reworded, not weakened.** It used to say
+  the daily weather was the only outbound request in the app. It no longer is,
+  so the clause now names both and says why neither is an automation: the
+  calendar is pulled when somebody presses something, never on a schedule.
+- **A hand correction outlives a re-sync.** `kindSource: "user"` is carried
+  across by `mergeEvents` forever. A pull that overwrote it would make the
+  correction feel broken, which is the fastest way to stop anyone making one.
+- **Inside a pulled window, a missing event is real information.** A cancelled
+  meeting did not happen, and leaving it behind would inflate that week's totals
+  permanently. Outside the window nothing is touched — this is a journal, and
+  last March is the point.
+
+### One more thing the tests caught
+
+The first version recomputed each day from scratch every time it was asked
+about, and the observations ask about each day roughly fifteen times — seven
+factors, each over every logged day, plus the weeks. On a year of a working
+calendar (about 1,800 rows) that was **190ms inside a render memo**: a visible
+stutter on a phone, for arithmetic that had not changed between the first ask
+and the fifteenth.
+
+Indexing the events by the days they touch only got it to 151ms, because the
+scan was never the cost. Caching the day itself — both keyed on the events
+array's identity in a `WeakMap`, which is exactly how this data moves, since
+React hands the same array back until a write replaces it — took it to **22ms**.
+The tests pin the direction that would actually hurt: a replaced array gets its
+own answer, never the old one's.
+
+### Tests
+
+**187 new, across five suites and one existing one**: `schedule.test.ts` (70), `ics.test.ts` (40),
+`googleCalendar.test.ts` (24), `scheduleAi.test.ts` (26), plus
+`scheduleUi.test.tsx` (24) through the real screen, and three more in
+`backupCompat` — because the 1.21 collections were written into every backup
+and dropped on the way back in for two releases before anyone noticed, and one
+of the new ones would fail the same way but louder: a restore that brought back
+three months of events with no record of *which* days had been read would report
+every one of them as a day with nothing booked — where the assertions that
+matter most are the negative ones: with titles off, no title reaches the DOM at
+all, and nothing reaches a model until the switch for that specific payload is
+flicked.
+
 ## 1.37.0
 
 The buttons that give you your data back now work on the phone you installed this on.

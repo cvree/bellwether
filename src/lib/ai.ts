@@ -778,7 +778,11 @@ export const isDiagnosticText = (text: string): boolean => DIAGNOSTIC.test(Strin
     turn every failure into an AiError the UI can phrase. Identical in shape to
     runPatternAnalysis's inner attempt, which is the point — one integration,
     five callers. */
-async function runStructured(
+/** One structured round trip, with the model-has-been-retired retry and the
+    error vocabulary every caller here shares. Exported so a feature living in
+    its own module (the schedule reading, in ./scheduleAi) gets the same
+    handling rather than a second, subtly different copy of it. */
+export async function runStructured(
   conn: Connection,
   req: { system: string; user: string; image?: ChatImage | null; schema: any; jsonHint: string; maxTokens?: number },
   signal?: AbortSignal

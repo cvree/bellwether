@@ -58,6 +58,28 @@ change them.
 
 ## What it does
 
+**Your calendar, as the other half of the record.** A journal can tell you the second week of
+March was the worst week since January. It cannot tell you that week had nineteen hours booked, no
+clear day, four evenings out and a Tuesday with seven things on it back to back — because nobody
+is going to rate their own meeting density at bedtime, and if they did, the rating would be a
+guess. Your calendar already knows. Connect it and the app draws the *shape* of each week — when
+things started, how long they ran, how many people were in them, how much of the day was left over
+— and puts it next to how you felt: against last week, against your own usual week, and against
+your own ratings, in counts of your own days.
+
+Two ways in, and one of them needs no account: **Google Calendar**, read-only (the app cannot
+create, move or delete anything, the token is never stored, and nothing from your journal is part
+of any request), or **a calendar file** you export and open here, which works entirely offline and
+keeps working whatever a provider does next.
+
+And the part that decides whether this belongs in a health record at all: **event titles are not
+stored unless you switch that on.** Your work calendar is full of other people's names, interview
+subjects, therapy slots. Each event is sorted into a category *as it arrives*, while the title is
+still in hand, and then the words are dropped — so a journal with titles off still knows Tuesday
+held four hours of meetings and an hour of exercise. It just cannot tell you who they were with.
+Switching titles back off erases the ones already stored. Every category is a guess you can
+correct, and a correction sticks through every future sync.
+
 **How often it asks is yours.** Every screen in this app used to assume one thing without ever
 saying it: that the check-in is daily. For plenty of people it is. For plenty of others it is
 exactly why their journal has eleven days in it — they were asked every morning for something that
@@ -1180,6 +1202,53 @@ Findings are phrased as observations, never conclusions, and output that ignores
 instruction is softened on the way in (`scrubCausalLanguage`) rather than rendered as-is.
 AI-generated cards are visually distinct from the locally calculated ones at a glance.
 
+### Optional calendar connection
+
+Off by default, like everything else that leaves the device, and reachable from **Settings → Your
+calendar** or the *Your week* door in History. Two routes:
+
+**A calendar file.** Export an `.ics` from any calendar — Google, Apple, Outlook, Fastmail,
+anything self-hosted — and open it here. It is parsed on the device (`src/lib/ics.ts`), nothing
+is uploaded, no account is involved and no network is needed. Re-opening a fresh export updates
+those days rather than duplicating them. This route works forever and does not depend on anybody
+else's terms of service.
+
+**Google Calendar**, read-only, straight from the browser. Two narrow scopes —
+`calendar.calendarlist.readonly` and `calendar.events.readonly` — rather than the one broad one,
+so the consent screen names something you can actually evaluate. The app cannot create, move or
+delete an event even by mistake. The access token is **never stored**: it lives in memory, dies
+with the tab, and is worth an hour. What goes to Google is a token they issued minutes ago and a
+date range; **nothing from your journal is part of any request.** This brings the calendar in, the
+same way the weather comes in.
+
+There is no client secret in this repository and there cannot be — the OAuth flow used here is the
+one designed for pages that have nowhere to keep one. A build can carry a public, origin-locked
+client id in `VITE_GOOGLE_CLIENT_ID`; if yours doesn't, the app walks you through creating one and
+stores it on the device beside the API key, out of the backup path.
+
+**What gets stored.** By default: when each thing started, how long it ran, how many people were
+invited (a count — never names or addresses), whether it was all-day, whether you declined it, and
+the category it was sorted into. **Not the titles.** Each event is classified as it arrives, while
+the title is still in hand, and the words are then dropped — so the journal still knows Tuesday
+held four hours of meetings and an hour of exercise. Turn titles on in the connection panel if you
+want them; turning them back off erases the ones already stored.
+
+**What can be sent to a model**, only if you switch it on, and as two separate switches because
+they send two different things:
+
+| Switch | What leaves | Needs |
+|---|---|---|
+| Sort unrecognised titles | A de-duplicated list of titles the built-in table couldn't place, with a duration and a head count each. **No dates.** Capped at 50, cached by title so a daily standup is sent once, ever. | Titles being kept, plus an AI connection |
+| Read the weekly numbers | Counts and minutes per week, weeks as ordinals. Your own weekly average for one metric if you've picked one. **No titles, no dates, no names.** | An AI connection |
+
+Both describe the payload before sending it, and both are softened by the same causal-language
+scrub the pattern analysis uses. With no model connected the weekly sentence is written from
+arithmetic instead — usually the more useful of the two, because you can check it.
+
+**Disconnecting** deletes every stored entry along with the connection, in one button that says so.
+
+---
+
 ### Optional PIN lock
 
 Off by default — the app opens straight to your journal. If the device is ever shared, turn on
@@ -1264,6 +1333,21 @@ bellwether/
 │   │   ├── quickActions.ts     # learned ordering + one-tap repeats, scored
 │   │   ├── longterm.ts         # monthly averages, year-over-year, seasons, floors
 │   │   ├── relationships.ts    # Spearman with ties, lag, coverage, sample floors
+│   │   ├── schedule.ts         # the week around the week: what a calendar entry
+│   │   │                       #   is, the local classifier that runs before the
+│   │   │                       #   title is dropped, day and week reductions,
+│   │   │                       #   coverage (an empty week vs a week never read),
+│   │   │                       #   19 chartable metrics, and the observations
+│   │   ├── ics.ts              # reading a calendar file: line unfolding, the
+│   │   │                       #   three timestamp shapes, and RRULE expansion
+│   │   │                       #   with EXDATE and moved instances applied
+│   │   ├── googleCalendar.ts   # OAuth from a browser with no server: two narrow
+│   │   │                       #   read-only scopes, a token that is never
+│   │   │                       #   stored, and pure parsers either side of it
+│   │   ├── scheduleAi.ts       # two requests, two payloads, two switches —
+│   │   │                       #   sorting unplaceable titles (no dates, cached
+│   │   │                       #   by title) and reading the weekly numbers
+│   │   │                       #   (no titles at all). Plus the no-model sentence
   │   ├── automation.ts       # the registry of everything the app concludes on
   │   │                       #   its own, and the contract all of it runs under
   │   ├── presence.ts         # indoors or outdoors, from how accurate the phone
@@ -1300,7 +1384,7 @@ bellwether/
 ├── public/                     # icons, og-image.png, robots.txt
 ├── ios/                        # Capacitor wrapper + WidgetKit starter
 ├── docs/                       # APP_STATE, product plan, automation, widget setup, shipping
-└── tests/                      # 1,616 tests across 65 suites
+└── tests/                      # 2,155 tests across 82 suites
 ```
 
 Colours are not written into components. `src/lib/theme.ts` owns two palettes and a live token

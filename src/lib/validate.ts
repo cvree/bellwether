@@ -67,7 +67,7 @@ export function validateDatabase(data: unknown): ValidationResult {
      per-row repair lives in each module's own sanitizer, and this exists so
      the recovery screen can say "your lab results are not an array" instead of
      handing somebody a journal that quietly lost them. */
-  for (const key of ["sun", "labs", "experiments", "context",
+  for (const key of ["sun", "labs", "experiments", "context", "calendar",
     "rituals", "ritualRuns", "ritualReviews"] as const) {
     if (d[key] !== undefined && !Array.isArray(d[key])) {
       errors.push(`${key} is not an array.`);
@@ -82,6 +82,30 @@ export function validateDatabase(data: unknown): ValidationResult {
       if (typeof lab.value !== "number" || !Number.isFinite(lab.value))
         errors.push(`Lab result ${i} has no numeric value.`);
     });
+  }
+
+  /* The calendar. Only the two fields every downstream number is built on are
+     named here — the per-row repair lives in sanitizeEvents — because a
+     recovery screen that says "your calendar is not an array" is worth more
+     than one that hands back a journal which quietly lost three months of it.
+     The coverage range gets its own check for the same reason it exists: a
+     malformed one makes every weekly average silently wrong rather than
+     visibly absent. */
+  if (Array.isArray(d.calendar)) {
+    (d.calendar as unknown[]).forEach((r: unknown, i: number) => {
+      if (!r || typeof r !== "object") { errors.push(`Calendar entry ${i} is not an object.`); return; }
+      const e = r as Record<string, unknown>;
+      if (typeof e.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(e.date))
+        errors.push(`Calendar entry ${i} has an invalid date.`);
+      if (typeof e.id !== "string" || !e.id)
+        errors.push(`Calendar entry ${i} has no id.`);
+    });
+  }
+  if (d.calendarCoverage !== undefined) {
+    const c = d.calendarCoverage as unknown as Record<string, unknown> | null;
+    if (!c || typeof c !== "object" || Array.isArray(c)) errors.push("calendarCoverage is not an object.");
+    else if (typeof c.start !== "string" || typeof c.end !== "string")
+      errors.push("calendarCoverage has no start and end.");
   }
 
   return { ok: errors.length === 0, errors };

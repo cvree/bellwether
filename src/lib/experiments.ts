@@ -530,6 +530,11 @@ export interface Suggestion {
 const KIND_WEIGHT: Record<Variable["kind"], number> = {
   environment: 3,
   sun: 3,
+  /* Level with the weather, and for the same reason: it is a factor the person
+     did not put in the journal by hand, so a comparison against it costs them
+     nothing to have already collected — and a week's shape is the thing people
+     most often suspect and least often have a record of. */
+  schedule: 3,
   food: 2,
   routine: 2,
   bowel: 1,

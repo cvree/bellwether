@@ -20,12 +20,15 @@ import type { AnswerValue, BowelLog, FoodLog, RoutineItem, RoutineLog } from "..
 import type { DayContext } from "./context";
 import type { LabResult } from "./labs";
 import type { SunSession } from "./sun";
+import type { CalEvent, Coverage } from "./schedule";
 import { CONTEXT_METRICS } from "./context";
 import { DERIVED_METRICS, metricCtx } from "./metrics";
 import { labMetricsFor } from "./labs";
 import { SUN_METRICS } from "./sun";
+import { SCHEDULE_METRICS } from "./schedule";
 
-export type VarKind = "answer" | "food" | "bowel" | "routine" | "sun" | "environment" | "lab";
+export type VarKind =
+  | "answer" | "food" | "bowel" | "routine" | "sun" | "environment" | "lab" | "schedule";
 
 export interface Variable {
   k: string;
@@ -65,6 +68,12 @@ export interface SeriesSources {
   sun?: SunSession[];
   context?: DayContext[];
   labs?: LabResult[];
+  calendar?: CalEvent[];
+  /** Which days the calendar has been read for. Passed through rather than
+      inferred: without it every day before the connection would answer 0
+      instead of "no answer", and an experiment comparing sleep against booked
+      time would silently be built on a fabricated flat line. */
+  calendarCoverage?: Coverage;
 }
 
 const toNum = (v: AnswerValue | undefined): number | null => {
@@ -138,6 +147,27 @@ export function variables(src: SeriesSources): Variable[] {
     });
   }
 
+  /* Only offered once there is a calendar to read. A picker full of options
+     that produce an empty chart is worse than a short one, and unlike the
+     weather this is a source most journals will never connect at all. */
+  if (src.calendar && src.calendar.length) {
+    for (const m of SCHEDULE_METRICS) {
+      out.push({
+        k: m.k,
+        label: m.label,
+        unit: m.unit,
+        dir: m.dir,
+        sec: m.sec,
+        kind: "schedule",
+        value: (date) => m.value({
+          events: src.calendar || [],
+          coverage: src.calendarCoverage,
+          date,
+        }),
+      });
+    }
+  }
+
   for (const m of labMetricsFor(src.labs || [])) {
     out.push({
       k: m.k,
@@ -184,6 +214,13 @@ export function journalDates(src: SeriesSources): string[] {
   for (const r of src.routine || []) set.add(r.date);
   for (const s of src.sun || []) set.add(s.date);
   for (const c of src.context || []) set.add(c.date);
+  /* Calendar days count as days the journal has something to say about, but
+     only inside coverage: outside it there is no answer, and adding those dates
+     to the spine would stretch every comparison across months of nulls. */
+  for (const e of src.calendar || []) {
+    if (!src.calendarCoverage) continue;
+    if (e.date >= src.calendarCoverage.start && e.date <= src.calendarCoverage.end) set.add(e.date);
+  }
   return [...set].sort();
 }
 
