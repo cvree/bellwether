@@ -901,6 +901,11 @@ week's report.
 Installing is also the most reliable way to keep your journal: browsers evict storage for
 sites you haven't visited, and iOS Safari does so after about a week. See below.
 
+**[docs/PHONE.md](docs/PHONE.md)** is the whole thing step by step, from a fresh clone to an
+icon on a Home Screen — the four paths (Home Screen web app, a native build on your own iPhone,
+TestFlight, the App Store), what each one costs and gives you, how to verify at each stage, and
+what to do when it goes wrong.
+
 ---
 
 ## Where your data lives, and how to not lose it
@@ -1396,6 +1401,9 @@ handful of keyframes, which is what the effect was always worth.
 (`ios/BellwetherWidget/`) for a real Home Screen widget showing today's streak and key
 metric — data reaches it via an on-device App Group, no network involved. Finishing it needs a
 Mac and Xcode; see **[docs/WIDGET_SETUP.md](docs/WIDGET_SETUP.md)**.
+
+**[docs/PHONE.md](docs/PHONE.md)** is the step-by-step route through all of this, start to
+finish, and the place to begin if you just want the app on a phone.
 
 Getting it onto other people's phones is a different question from building it, and it splits
 in two. **[docs/SHIPPING.md](docs/SHIPPING.md)** covers the decisions — which distribution path

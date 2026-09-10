@@ -8,8 +8,9 @@ requires a **Mac with Xcode** — widget extension targets, code signing, and
 on-device builds can't be scripted from outside Xcode.
 
 You do **not** need any of this to install the app on your phone today — see
-"Install on your phone (PWA)" in the main README. This guide is for a real
-native Home Screen widget that shows your streak and today's key metric.
+[PHONE.md](./PHONE.md), which walks every route onto a phone from a fresh
+clone and starts with the one that needs no Mac at all. This guide is for a
+real native Home Screen widget that shows your streak and today's key metric.
 
 ## What's already here
 
