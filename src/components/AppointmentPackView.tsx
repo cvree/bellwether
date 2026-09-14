@@ -17,6 +17,7 @@ import {
   VERDICT_WORD, changeLabel, coverageLabel, pageLabel,
   type AppointmentPack, type PackPhotoSide,
 } from "../lib/appointmentPack";
+import { DOMAINS, DOMAIN_META, type PackRecordSection } from "../lib/record";
 
 type Meta = {
   name: string;
@@ -97,6 +98,88 @@ function Section({ title, action, children, className = "" }: {
   );
 }
 
+/* The standing record, as it prints.
+
+   Two things here are not decoration. The alert band is first and is the only
+   thing in this pack drawn with a border heavy enough to catch an eye that is
+   skimming — because the reader may be about to hand somebody a medicine, and
+   an anaphylaxis buried nine lines into a list has been formatted into
+   uselessness.
+
+   And a kind stated empty prints its sentence *with the date it was said*. "No
+   known allergies" alone is a claim the document cannot support; "No known
+   allergies — stated 14 March 2026" is a statement by a person on a day, which
+   is exactly what a history is made of. */
+function RecordBlock({ record }: { record: PackRecordSection }) {
+  return (
+    <Section title="About you">
+      {record.alerts.length > 0 && (
+        <div className="fhj-pack-alert" role="note">
+          <div className="fhj-eyebrow">Please note</div>
+          <ul className="fhj-pack-alert-list">
+            {record.alerts.map((a, i) => (
+              <li key={i}>
+                <strong>{a.line}</strong>
+                {a.detail ? <span> — {a.detail}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {DOMAINS.map((d) => {
+        const groups = record.groups.filter((g) => g.domain === d);
+        if (!groups.length) return null;
+        return (
+          <div key={d} className="fhj-pack-record-domain">
+            <div className="fhj-pack-record-domain-head">{DOMAIN_META[d].label}</div>
+            <div className="fhj-pack-record">
+              {groups.map((g) => (
+                <div key={g.kind} className="fhj-pack-record-group">
+                  <div className="fhj-eyebrow">{g.label}</div>
+                  {g.none ? (
+                    <p className="fhj-pack-record-none">
+                      {g.noneLine}
+                      {g.statedAt ? <span className="fhj-pack-cap"> Stated {fmtDate(g.statedAt)}.</span> : null}
+                    </p>
+                  ) : (
+                    <ul className="fhj-pack-record-list">
+                      {g.items.map((it, i) => (
+                        <li key={i} className={it.alert ? "is-alert" : undefined}>
+                          <span className="fhj-pack-record-line">{it.line}</span>
+                          {it.detail ? <span className="fhj-pack-record-detail"> {it.detail}</span> : null}
+                          {it.note ? <span className="fhj-pack-record-note">{it.note}</span> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {record.missing.length > 0 && (
+        <p className="fhj-pack-cap fhj-pack-record-missing">
+          Not asked about: {record.missing.map((m) => m.label.toLowerCase()).join(", ")}. Absence
+          here means the question has not been answered, not that the answer is no.
+        </p>
+      )}
+      {record.reviewedAt && (
+        <p className="fhj-pack-cap">Record last confirmed {fmtDate(record.reviewedAt)}.</p>
+      )}
+      {record.held > 0 && (
+        <p className="fhj-pack-cap no-print">
+          {record.held} {record.held === 1 ? "entry is" : "entries are"} marked private and
+          {record.held === 1 ? " is" : " are"} not in this pack. Nothing on the printed page
+          says so.
+        </p>
+      )}
+    </Section>
+  );
+}
+
 export default function AppointmentPackView({
   pack, meta, renderPhoto, onQuestionsChange, onChooseNotes, onChoosePhoto, onFeedback,
 }: Props) {
@@ -129,6 +212,8 @@ export default function AppointmentPackView({
           <span>Printed {fmtDate(meta.printedOn)}</span>
         </div>
       </div>
+
+      {pack.record && <RecordBlock record={pack.record} />}
 
       {h && (
         <Section title="How it's been">

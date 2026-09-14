@@ -127,3 +127,72 @@ describe("switching titles off takes them out of both places they live", () => {
     expect(off.calendar[0].kind).toBe("exercise");
   });
 });
+
+/* ---------- the standing record survives a round trip ----------
+
+   Same guard as the calendar above, and one clause more that is the whole
+   point of the collection: a backup carries the *private* facts too. Every
+   other outbound path in the app drops them, and the one place that must not
+   is this one — a restore that silently lost the sensitive half of somebody's
+   history would be the worst possible way to learn the difference between a
+   backup and an export. */
+describe("a restored backup keeps the standing record it saved", () => {
+  const facts = [
+    {
+      id: "f_coeliac", kind: "condition", label: "Coeliac disease", since: "2019",
+      createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    },
+    {
+      id: "f_loss", kind: "event", label: "Bereavement", since: "2025-03", private: true,
+      createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    },
+  ];
+
+  it("carries every fact, private ones included, and what was stated empty", async () => {
+    const db: any = I.migrateDb({ ...I.genSampleData(), ack: true, onboarded: true });
+    db.record = facts;
+    db.profile = {
+      ...db.profile,
+      record: { none: ["allergy"], statedAt: { allergy: "2026-09-14" }, reviewedAt: "2026-09-14" },
+    };
+
+    const backup = await I.buildFullBackup(db);
+    expect(backup.record).toHaveLength(2);
+
+    let restored: any = null;
+    await I.restoreBackup(backup, (next: any) => { restored = typeof next === "function" ? next(db) : next; });
+    expect(restored.record.map((f: any) => f.id).sort()).toEqual(["f_coeliac", "f_loss"]);
+    expect(restored.record.find((f: any) => f.id === "f_loss").private).toBe(true);
+    /* The partial date is not padded on the way through. */
+    expect(restored.record.find((f: any) => f.id === "f_coeliac").since).toBe("2019");
+    /* The asked/answered memory rides in the profile, like every other
+       standing decision about this journal. */
+    expect(restored.profile.record.none).toEqual(["allergy"]);
+    expect(restored.profile.record.statedAt.allergy).toBe("2026-09-14");
+    expect(restored.profile.record.reviewedAt).toBe("2026-09-14");
+  });
+
+  it("refuses to hold a stated negative about a kind that has something in it", () => {
+    /* A file claiming both. The fact was typed by a person; the negative wins
+       nothing. This is the one invariant `sanitizeRecordState` enforces, and
+       it is enforced on every load rather than at the writer. */
+    const settled: any = I.migrateDb({
+      ...I.genSampleData(), ack: true, onboarded: true,
+      record: facts,
+      profile: {
+        ...I.genSampleData().profile,
+        record: { none: ["condition", "allergy"], statedAt: { condition: "2026-09-14" } },
+      },
+    });
+    expect(settled.profile.record.none).toEqual(["allergy"]);
+    expect(settled.profile.record.statedAt?.condition).toBeUndefined();
+  });
+
+  it("drops a malformed fact rather than restoring a blank row", () => {
+    const settled: any = I.migrateDb({
+      ...I.genSampleData(), ack: true, onboarded: true,
+      record: [{ id: "x", kind: "condition" }, { id: "y", label: "no kind" }, ...facts],
+    });
+    expect(settled.record.map((f: any) => f.id).sort()).toEqual(["f_coeliac", "f_loss"]);
+  });
+});

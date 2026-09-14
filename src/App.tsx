@@ -195,6 +195,11 @@ import {
   labSeries, labSummaryLine, newLabResult, sanitizeLabResults, testsHeld,
 } from "./lib/labs";
 import {
+  buildRecordTable, clearNone as recordClearNone, newFact, recordLine,
+  recordSummary, sanitizeFacts, sanitizeRecordState,
+  shareable as shareableFacts, stateNone as recordStateNone,
+} from "./lib/record";
+import {
   availableStarters, highlightDates, newExperiment, runAll, sanitizeExperiments,
   suggestExperiments,
 } from "./lib/experiments";
@@ -213,6 +218,7 @@ import SunScreen from "./components/SunScreen";
 import ExperimentsScreen from "./components/ExperimentsScreen";
 import EvidenceMeter from "./components/EvidenceMeter";
 import LabsScreen from "./components/LabsScreen";
+import RecordScreen from "./components/RecordScreen";
 import ScheduleScreen from "./components/ScheduleScreen";
 import { ContextStrip, ContextWash, SkyGlyph, TempTrace, washScale } from "./components/DayContext";
 
@@ -1495,6 +1501,11 @@ function Icon({ name, size = 20, color = "currentColor" }) {
     /* A heart with its own trace running through it. POTS is measured in the
        jump between two heart rates, so the app needed a mark for one. */
     heart: <g><path {...p} d="M12 20.5S3.5 15.2 3.5 9.4A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 8.5 2c0 5.8-8.5 11.1-8.5 11.1z" /><path {...p} d="M6.5 12h2.2l1.4-2.6L12 14l1.3-2h3.4" /></g>,
+    /* The standing record's mark. A head and shoulders rather than a clipboard
+       or a folder: the screen is about a person, and the two filing metaphors
+       both say "form to fill in", which is the one thing it is trying not to
+       be. */
+    person: <g><circle {...p} cx="12" cy="8" r="3.6" /><path {...p} d="M4.8 20.2a7.2 7.2 0 0 1 14.4 0" /></g>,
     /* The delete key, drawn as the key it is — an arrow-ended tag with an x in
        it. A bare chevron here reads as "go back a screen", which on a keypad
        is exactly the wrong promise. */
@@ -6356,7 +6367,8 @@ function CatchUpRow({ cadence, logged, today, openLog }) {
 function HistoryScreen({
   profile, entries, food = [], bowel = [], routine = [], routineItems = [],
   rituals = [], ritualRuns = [],
-  openLog, goInsights, goDiary, goExport, goGallery, goSettings, goSetup, goSun, goLabs,
+  openLog, goInsights, goDiary, goExport, goGallery, goSettings, goSetup, goSun, goLabs, goRecord,
+  record = [], recordState,
   goExperiments, goSchedule, calendarCount = 0,
   goSearch, viewer, syncStatus, context = [], sun = [], labs = [], lit, onClearLit,
 }) {
@@ -6487,6 +6499,18 @@ function HistoryScreen({
           <span>
             <span className="fhj-tile-label block">Diary</span>
             <span className="fhj-tile-sub block">Meals and doses</span>
+          </span>
+        </button>
+        <button type="button" onClick={() => { feedback("nav"); goRecord(); }}
+          className="fhj-hist-door fhj-pop fhj-cat-symptom">
+          <span className="fhj-tile-icon" aria-hidden>◍</span>
+          <span>
+            <span className="fhj-tile-label block">About you</span>
+            <span className="fhj-tile-sub block">
+              {recordSummary(record, recordState).total
+                ? recordLine(record, recordState)
+                : "Conditions, allergies, history"}
+            </span>
           </span>
         </button>
         <button type="button" onClick={() => { feedback("nav"); goSun(); }}
@@ -6713,12 +6737,15 @@ function AppointmentPackScreen({ db, setDb, params, goBack, viewer }) {
     today: t0, range, entries, primary, metrics,
     episodes: db.episodes || [],
     routineItems: db.routineItems || [], routineLogs: db.routine || [],
-    /* Two of the three things a clinician opens with are now in the journal:
-       what the bloods said, and how much daylight somebody actually got. */
+    /* The things a clinician opens with, now all in the journal: what the
+       bloods said, how much daylight somebody actually got, and — since 1.39 —
+       who this is. The last of those prints above all the arithmetic, because
+       none of the arithmetic can be read without it. */
     labs: db.labs || [], sun: db.sun || [],
+    record: { facts: db.record || [], state: profile.record },
     sections: prefs.sections, noteDates: prefs.noteDates, questions: prefs.questions,
     photo,
-  }), [t0, range.start, range.end, entries, primary, metrics, db.episodes, db.routineItems, db.routine, db.labs, db.sun, prefs, photo]);
+  }), [t0, range.start, range.end, entries, primary, metrics, db.episodes, db.routineItems, db.routine, db.labs, db.sun, db.record, profile.record, prefs, photo]);
 
   const onCount = PACK_SECTIONS.filter((sec) => pack.sections[sec.key] !== false).length;
 
@@ -7130,6 +7157,17 @@ function ExportScreen({ db, setDb, goPack }) {
         : XLSX.utils.aoa_to_sheet([["No time outside recorded in this date range."]]),
       "Time outside");
 
+    /* The standing record, which is the one sheet with no date range on it —
+       these are facts about a person, not rows that happened in a window, and
+       filtering them by the export's dates would drop a 2019 diagnosis out of
+       a spreadsheet covering last month. `buildRecordTable` applies the
+       privacy gate: a fact marked private is in no export, ever. */
+    const recordTbl = buildRecordTable(db.record || [], profile.record, todayStr());
+    XLSX.utils.book_append_sheet(wb,
+      recordTbl.rows.length ? XLSX.utils.aoa_to_sheet([recordTbl.header, ...recordTbl.rows])
+        : XLSX.utils.aoa_to_sheet([["Nothing on the standing record yet — see About you."]]),
+      "About you");
+
     const contextTbl = buildContextTable(contextInRange);
     XLSX.utils.book_append_sheet(wb,
       contextTbl.rows.length ? XLSX.utils.aoa_to_sheet([contextTbl.header, ...contextTbl.rows])
@@ -7150,6 +7188,11 @@ function ExportScreen({ db, setDb, goPack }) {
       routine: routineInRange, routineItems,
       rituals, ritualRuns: ritualRunsInRange, ritualReviews: db.ritualReviews || [],
       labs: labsInRange, sun: sunInRange, context: contextInRange,
+      /* Whole facts rather than the rendered table, because a JSON export is
+         still readable by a person and a machine both. Gated the same way:
+         this is an export, not a backup. `buildFullBackup` is the path that
+         carries everything. */
+      record: shareableFacts(db.record || []),
       experiments: db.experiments || [],
       reports: (db.reports || []).filter((r) => !(r.range.start > bounds.end || r.range.end < bounds.start)),
     };
@@ -8409,6 +8452,12 @@ async function buildFullBackup(db) {
        allowed to send. */
     sun: db.sun || [], labs: db.labs || [], experiments: db.experiments || [],
     context: db.context || [],
+    /* The standing record travels whole — private facts included. A backup is
+       the journal rather than a copy of part of it made to hand to somebody,
+       and a restore that silently dropped the sensitive half would be the
+       worst possible way to learn the difference. The pack and the export are
+       where `shareable()` applies; this is not either. */
+    record: db.record || [],
     /* The calendar, on exactly the same terms. The events and the range they
        cover are a record of the days and travel with the journal; the
        *consent* rides along inside `profile`, which is right — it describes
@@ -8510,6 +8559,7 @@ async function restoreBackup(obj, setDb) {
        the rituals above are: a backup that cannot restore what it saved is not
        a backup. */
     sun: obj.sun, labs: obj.labs, experiments: obj.experiments, context: obj.context,
+    record: obj.record,
     calendar: obj.calendar, calendarCoverage: obj.calendarCoverage,
     calendarKinds: obj.calendarKinds, scheduleReading: obj.scheduleReading,
     // `enabled` is deliberately not restored — see buildFullBackup.
@@ -9932,7 +9982,7 @@ function SyncCard({ engine, status, available, onRefreshConfig }) {
   );
 }
 
-function SettingsScreen({ db, setDb, goHome, goSetup, goImport, goNoteImport, goExport, goSchedule, lockEnabled, onSetupPin, onChangePin, onDisablePin, setAi, onAiSetupComplete, syncEngine, syncStatus, syncConfigured, onRefreshSyncConfig, onTour }) {
+function SettingsScreen({ db, setDb, goHome, goSetup, goImport, goNoteImport, goExport, goSchedule, goRecord, lockEnabled, onSetupPin, onChangePin, onDisablePin, setAi, onAiSetupComplete, syncEngine, syncStatus, syncConfigured, onRefreshSyncConfig, onTour }) {
   const prefs = db.profile.prefs || DEFAULT_PREFS;
   const scheduleConnected = db.profile.schedule?.enabled === true && db.profile.schedule?.source !== "off";
   const setPrefs = (patch) => setDb((prev) => ({
@@ -10109,6 +10159,23 @@ function SettingsScreen({ db, setDb, goHome, goSetup, goImport, goNoteImport, go
           (Google Takeout). Read on this device only — nothing is uploaded.
         </p>
         <Button variant="secondary" block onClick={goImport}>Import wearable data</Button>
+      </Card>
+
+      {/* The standing record. Here as well as behind its own door because
+          Settings is where somebody goes to ask "what does this app know about
+          me", and the honest answer to that has two halves: the days, and the
+          things that were true before the days started. */}
+      <Card className="mt-3">
+        <div className="fhj-eyebrow mb-2.5">About you</div>
+        <p className="text-sm leading-relaxed mb-3.5" style={{ color: C.sub }}>
+          {recordLine(db.record || [], db.profile?.record)} Conditions, allergies, operations, family
+          history, what's weighing on you, who's around, where you live — the things a clinician asks
+          first and a journal of days can't answer. It prints at the top of every appointment pack,
+          and anything you mark private stays here.
+        </p>
+        <Button variant="secondary" block onClick={goRecord}>
+          {recordSummary(db.record || [], db.profile?.record).total ? "About you" : "Start the record"}
+        </Button>
       </Card>
 
       {/* The calendar. In Settings as well as behind its own screen, because
@@ -18999,6 +19066,12 @@ function migrateDb(data) {
      than trusted on any of them. */
   d.sun = sanitizeSunSessions(d.sun);
   d.labs = sanitizeLabResults(d.labs);
+  /* The standing record, and separately the memory of what has been asked
+     about it. Order matters: the state is sanitised *against* the facts, so a
+     kind that holds something can never also be marked as holding nothing —
+     see sanitizeRecordState. */
+  d.record = sanitizeFacts(d.record);
+  d.profile.record = sanitizeRecordState(d.profile.record, d.record);
   d.experiments = sanitizeExperiments(d.experiments);
   /* Environmental context. This one is *fetched* rather than entered, which
      makes it the collection most likely to be malformed — a provider changing
@@ -19986,6 +20059,7 @@ export default function App({ viewer = false }) {
       ritualRuns: db.ritualRuns || [],
       episodes: db.episodes || [],
       labs: db.labs || [],
+      record: db.record || [],
       experiments: db.experiments || [],
       sun: db.sun || [],
       canWrite: !viewer,
@@ -20655,6 +20729,84 @@ export default function App({ viewer = false }) {
     });
   };
 
+  /* ---------- the standing record ----------
+
+     Four handlers, and the interesting one is the third. `stateNone` writes a
+     *statement* — "no known allergies", with today's date on it — which is a
+     different act from leaving a section empty, and the pack prints the two
+     differently. `recordStateNone` refuses when the kind already holds
+     something, because the two claims contradict each other and there is no
+     version of that contradiction worth storing. */
+
+  const saveFact = (fact) => {
+    let before = null;
+    setDb((prev) => {
+      before = prev.record || [];
+      const rest = before.filter((f) => f.id !== fact.id);
+      return {
+        ...prev,
+        record: [...rest, fact],
+        /* Adding to a kind that was marked empty clears the mark in the same
+           write. One fact and "nothing here" cannot both be true, and leaving
+           the mark would put a contradiction in the next pack. */
+        profile: { ...prev.profile, record: recordClearNone(prev.profile.record, fact.kind) },
+      };
+    });
+    const existed = (db.record || []).some((f) => f.id === fact.id);
+    toast({
+      text: existed ? "Updated" : `${fact.label} added`,
+      cat: "fhj-cat-symptom",
+      undo: () => setDb((prev) => (before ? { ...prev, record: before } : prev)),
+    });
+  };
+
+  const deleteFact = (id) => {
+    const deviceId = engineRef.current?.getDeviceId?.() || "local";
+    const row = (db.record || []).find((f) => f.id === id);
+    setDb((prev) => addTombstone(
+      { ...prev, record: (prev.record || []).filter((f) => f.id !== id) }, "fact", id, deviceId
+    ));
+    engineRef.current?.noteDeleted?.("fact", id);
+    toast({
+      text: "Removed",
+      icon: "trash",
+      cat: "fhj-cat-symptom",
+      undo: () => setDb((prev) => ({
+        ...prev,
+        record: row ? [...(prev.record || []), row] : prev.record,
+        tombstones: (prev.tombstones || []).filter((t) => !(t.kind === "fact" && t.id === id)),
+      })),
+    });
+  };
+
+  const stateNothing = (kind) => {
+    setDb((prev) => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        record: recordStateNone(prev.profile.record, kind, todayStr(), prev.record || []),
+      },
+    }));
+  };
+
+  const clearNothing = (kind) => {
+    setDb((prev) => ({
+      ...prev,
+      profile: { ...prev.profile, record: recordClearNone(prev.profile.record, kind) },
+    }));
+  };
+
+  const markRecordReviewed = () => {
+    setDb((prev) => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        record: { ...(prev.profile.record || {}), reviewedAt: todayStr() },
+      },
+    }));
+    toast({ text: "Confirmed as current", cat: "fhj-cat-symptom" });
+  };
+
   /* ---------- the calendar ----------
 
      The second thing in this app that reaches outside the device, after the
@@ -21180,7 +21332,7 @@ export default function App({ viewer = false }) {
       onRefreshSyncConfig={() => setSyncConfigured(syncAvailable())}
       onAiSetupComplete={() => { setAiAutoRun((n) => n + 1); setScreen("dashboard"); }}
       goImport={() => setScreen("fitbit")} goNoteImport={() => setScreen("import")}
-      goSchedule={() => setScreen("schedule")} lockEnabled={!!lock}
+      goSchedule={() => setScreen("schedule")} goRecord={() => setScreen("record")} lockEnabled={!!lock}
       onSetupPin={() => setLockFlow("setup")} onChangePin={() => setLockFlow("change-verify")}
       onDisablePin={() => setLockFlow("disable-verify")}
       onTour={() => { feedback("nav"); setTourDone(false); setTour(true); setScreen("dashboard"); }} />;
@@ -21300,6 +21452,21 @@ export default function App({ viewer = false }) {
         onFeedback={feedback}
       />
     );
+  } else if (screen === "record") {
+    content = (
+      <RecordScreen
+        facts={db.record || []}
+        state={profile.record}
+        today={todayStr()}
+        viewer={viewer}
+        onSave={saveFact}
+        onDelete={deleteFact}
+        onStateNone={stateNothing}
+        onClearNone={clearNothing}
+        onReviewed={markRecordReviewed}
+        onFeedback={feedback}
+      />
+    );
   } else if (screen === "schedule") {
     content = (
       <ScheduleScreen
@@ -21344,6 +21511,8 @@ export default function App({ viewer = false }) {
         goExport={() => setScreen("export")} goGallery={() => setScreen("gallery")}
         goSettings={() => setScreen("settings")} goSetup={() => setScreen("setup")}
         goSun={() => setScreen("sun")} goLabs={() => setScreen("labs")}
+        goRecord={() => setScreen("record")}
+        record={db.record || []} recordState={profile.record}
         goExperiments={() => setScreen("experiments")}
         goSchedule={() => setScreen("schedule")}
         calendarCount={calendarRows.length}
@@ -21391,7 +21560,7 @@ export default function App({ viewer = false }) {
     pack: "Appointment Pack", history: "History", search: "Search",
     fitbit: "Import Health Data", import: "Import Your Notes",
     sun: "Sun & Outdoor Light", experiments: "Experiments", labs: "Labs & Measurements",
-    schedule: "Your Week",
+    schedule: "Your Week", record: "About You",
     report: reportParams.savedId ? "Saved Report" : (reportParams.type === "month" ? "Monthly Report" : "Weekly Report"),
   }[screen] || APP_NAME;
 

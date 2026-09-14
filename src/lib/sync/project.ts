@@ -73,6 +73,7 @@ interface Db {
   experiments?: any[];
   context?: any[];
   episodes?: any[];
+  record?: any[];
   tombstones?: Tombstone[];
   [k: string]: unknown;
 }
@@ -105,6 +106,12 @@ const COLLECTIONS: [RecordKind, string][] = [
   ["experiment", "experiments"],
   ["context", "context"],
   ["episode", "episodes"],
+  /* The standing record. It syncs whole, private facts included, for the same
+     reason a backup carries them: sync is this journal on another device the
+     same person owns, not a copy handed to anybody. The encryption is the
+     same encryption every other row gets, and the passphrase never leaves the
+     device. */
+  ["fact", "record"],
 ];
 
 function stripDeviceLocal(profile: any) {

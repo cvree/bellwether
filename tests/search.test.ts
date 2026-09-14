@@ -347,3 +347,67 @@ describe("showing the match", () => {
     }
   });
 });
+
+/* ---------- the standing record ----------
+
+   Two things here are not obvious. A fact carries *no* date, on purpose: a
+   partial `since` of "2019" is not a thing that happened on a day, and letting
+   it into the date field would put a diagnosis inside every range filter that
+   crosses a new year. And private facts *are* indexed — search is the person
+   looking through their own journal on their own device, which is the one
+   place the outbound gate has no business. */
+describe("about you", () => {
+  const facts = [
+    {
+      id: "f1", kind: "condition", label: "Coeliac disease", since: "2019",
+      createdAt: "", updatedAt: "",
+    },
+    {
+      id: "f2", kind: "allergy", label: "Penicillin", severity: "anaphylaxis",
+      reaction: "throat closes", createdAt: "", updatedAt: "",
+    },
+    {
+      id: "f3", kind: "event", label: "Bereavement", private: true,
+      createdAt: "", updatedAt: "",
+    },
+  ] as any;
+
+  it("finds a condition by name and opens it where it lives", () => {
+    const docs = index({ record: facts });
+    const out = find(docs, "coeliac");
+    expect(out.hits[0].doc.kind).toBe("fact");
+    expect(out.hits[0].doc.target).toEqual({ screen: "record", id: "f1" });
+  });
+
+  it("finds an allergy by what it does as well as by its name", () => {
+    const docs = index({ record: facts });
+    expect(find(docs, "throat").hits[0].doc.title).toBe("Penicillin");
+  });
+
+  it("finds one by the section it is in", () => {
+    const docs = index({ record: facts });
+    expect(titles(docs, "allergies")).toContain("Penicillin");
+  });
+
+  it("searches a private fact — this is the person's own journal", () => {
+    const docs = index({ record: facts });
+    expect(find(docs, "bereavement").hits[0].doc.title).toBe("Bereavement");
+  });
+
+  it("gives a fact no date, so a partial year cannot fall into a range filter", () => {
+    const docs = index({ record: facts });
+    for (const d of docs.filter((x) => x.kind === "fact")) expect(d.date).toBeUndefined();
+  });
+
+  it("offers the screen itself, under the words people reach for", () => {
+    const place = PLACES.find((p) => p.screen === "record")!;
+    expect(place.title).toBe("About you");
+    for (const word of ["allergy", "medical history", "surgery", "housing"]) {
+      expect(`${place.extra} ${place.subtitle}`.toLowerCase(), word).toContain(word);
+    }
+  });
+
+  it("is a kind the results list knows how to group", () => {
+    expect(KIND_ORDER).toContain("fact");
+  });
+});

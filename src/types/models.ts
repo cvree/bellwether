@@ -8,6 +8,7 @@ import type { HealthEpisode } from "../lib/episodes";
 import type { ContextConsent, DayContext } from "../lib/context";
 import type { Experiment } from "../lib/experiments";
 import type { LabResult } from "../lib/labs";
+import type { HealthFact, RecordState } from "../lib/record";
 import type { SunProfile, SunSession } from "../lib/sun";
 import type { AutomationSettings } from "../lib/automation";
 import type { Ritual, RitualReview, RitualRun } from "../lib/rituals";
@@ -175,6 +176,12 @@ export interface TrackingSetup {
   /** Skin type, usual exposure and waking time — the three answers the vitamin
       D estimate personalises on. Asked once, all refusable. See lib/sun. */
   sun?: SunProfile;
+  /** Which parts of the standing record have been explicitly answered with
+      "nothing", when that was said, and when the whole record was last
+      confirmed. Deliberately separate from the facts themselves: it records
+      what has been *asked*, which is a different thing from what is true.
+      See rule 3 in src/lib/record.ts. */
+  record?: RecordState;
   /** Whether a calendar is connected, where from, which calendars, whether
       titles are kept, and what a model is allowed to be shown. Off until
       somebody switches it on. See src/lib/schedule.ts. */
@@ -556,6 +563,12 @@ export interface AppDatabase extends OnboardingState {
   sun?: SunSession[];
   /** Blood work and measurements somebody else took. See src/lib/labs.ts. */
   labs?: LabResult[];
+  /** The standing record: conditions, allergies, operations, treatments,
+      family history, substances, everyday activities, stressors, coping, life
+      events, people, housing, work, background, money and interests. The one
+      collection here that is not a diary — see the header of src/lib/record.ts
+      for why that difference is the whole point of it. */
+  record?: HealthFact[];
   /** Running comparisons the person asked for. See src/lib/experiments.ts. */
   experiments?: Experiment[];
   /** One environmental record per day, fetched with permission. Weather, not
@@ -598,5 +611,9 @@ export type { CalEvent, Coverage, EventKind, ScheduleConsent } from "../lib/sche
 export type { KindMap, ScheduleReading } from "../lib/scheduleAi";
 export type { Experiment };
 export type { LabResult };
+export type {
+  AdlLevel, AllergySeverity, AllergyType, FactDomain, FactImpact, FactKind,
+  FactStatus, HealthFact, RecordState,
+} from "../lib/record";
 export type { SunProfile, SunSession };
 export type { Ritual, RitualReview, RitualRun, RitualStep } from "../lib/rituals";

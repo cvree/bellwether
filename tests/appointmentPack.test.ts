@@ -503,3 +503,82 @@ describe("the pack carries both, and says why when it can't", () => {
     expect(DEFAULT_PACK_SECTIONS.sun).toBe(true);
   });
 });
+
+/* ---------- the standing record, printed first ----------
+
+   The pack's rule 1 — nothing is invented — applied to a collection where the
+   temptation to invent is strongest. An empty allergy heading on a document a
+   clinician reads is a negative nobody stated, and it is the single most
+   dangerous blank space this app could print. */
+describe("about you", () => {
+  const fact = (over: Record<string, unknown>) => ({
+    id: `f_${over.label}`, createdAt: TODAY, updatedAt: TODAY, ...over,
+  }) as any;
+
+  const coeliac = fact({ kind: "condition", label: "Coeliac disease", since: "2019" });
+  const penicillin = fact({
+    kind: "allergy", label: "Penicillin", severity: "anaphylaxis", reaction: "throat closes",
+  });
+
+  it("prints before the arithmetic, because the arithmetic can't be read without it", () => {
+    /* Not a preference. The average, the change and the flare durations are all
+       numbers about a person the reader has not been introduced to. */
+    const keys = PACK_SECTIONS.map((s) => s.key);
+    expect(keys[0]).toBe("record");
+    expect(DEFAULT_PACK_SECTIONS.record).toBe(true);
+  });
+
+  it("carries the facts and the domain each belongs to", () => {
+    const pack = buildAppointmentPack(input({ record: { facts: [coeliac, penicillin] } }));
+    expect(pack.record).not.toBeNull();
+    const conditions = pack.record!.groups.find((g) => g.kind === "condition")!;
+    expect(conditions.domain).toBe("body");
+    expect(conditions.items[0].line).toBe("Coeliac disease");
+    expect(conditions.items[0].detail).toContain("since 2019");
+  });
+
+  it("raises a severe allergy above everything else on the page", () => {
+    const pack = buildAppointmentPack(input({ record: { facts: [coeliac, penicillin] } }));
+    expect(pack.record!.alerts.map((a) => a.line)).toEqual(["Penicillin"]);
+  });
+
+  it("prints a stated negative as a sentence, and omits one nobody was asked", () => {
+    const pack = buildAppointmentPack(input({
+      record: {
+        facts: [coeliac],
+        state: { none: ["allergy"], statedAt: { allergy: TODAY } },
+      },
+    }));
+    const allergy = pack.record!.groups.find((g) => g.kind === "allergy")!;
+    expect(allergy.none).toBe(true);
+    expect(allergy.noneLine).toBe("No known allergies.");
+    expect(allergy.statedAt).toBe(TODAY);
+    /* And a kind with neither is named as not asked rather than left blank. */
+    expect(pack.record!.groups.map((g) => g.kind)).not.toContain("procedure");
+    expect(pack.record!.missing.map((m) => m.kind)).toContain("procedure");
+  });
+
+  it("never carries a fact marked private — not even a severe allergy", () => {
+    const pack = buildAppointmentPack(input({
+      record: { facts: [coeliac, { ...penicillin, private: true }] },
+    }));
+    expect(JSON.stringify(pack.record)).not.toContain("Penicillin");
+    expect(pack.record!.alerts).toEqual([]);
+    /* The count is for the app to show beside the pack, never on the paper. */
+    expect(pack.record!.held).toBe(1);
+  });
+
+  it("omits the section with a reason when there is nothing on the record", () => {
+    const pack = buildAppointmentPack(input());
+    expect(pack.record).toBeNull();
+    expect(pack.omitted.find((o) => o.key === "record")?.reason).toContain("Nothing on the record");
+  });
+
+  it("leaves it out entirely when the section is switched off", () => {
+    const pack = buildAppointmentPack(input({
+      record: { facts: [coeliac] }, sections: { record: false },
+    }));
+    expect(pack.record).toBeNull();
+    expect(pack.omitted.some((o) => o.key === "record")).toBe(false);
+  });
+});

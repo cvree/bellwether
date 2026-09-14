@@ -34,7 +34,7 @@ export type RecordKind =
   | "routine" | "routineItem"
   | "ritual" | "ritualRun" | "ritualReview"
   | "sun" | "lab" | "experiment" | "context"
-  | "episode"
+  | "episode" | "fact"
   | "profile";
 
 /** One syncable thing, in the form both sides agree on. `payload` is the
