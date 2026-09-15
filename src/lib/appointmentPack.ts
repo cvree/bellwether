@@ -37,6 +37,7 @@ import {
   type EpisodeStats, type HealthEpisode,
 } from "./episodes";
 import { convertValue } from "./labs";
+import { packRecordSection, type HealthFact, type PackRecordSection, type RecordState } from "./record";
 import { asNeededItems, kindLabel, routineChecklist, routineOn } from "./routine";
 import type { RoutineItem, RoutineLog } from "../types/models";
 
@@ -63,6 +64,7 @@ export interface PackMetric {
 }
 
 export type PackSectionKey =
+  | "record"
   | "summary" | "scores" | "flares" | "changes"
   | "labs" | "sun" | "routine" | "photos" | "notes" | "questions";
 
@@ -74,6 +76,13 @@ export interface PackSectionDef {
 
 /** The order they print in, which is the order a consultation runs in. */
 export const PACK_SECTIONS: PackSectionDef[] = [
+  /* First, and not by seniority. The rest of this pack is a hundred and twenty
+     days of arithmetic about somebody whose conditions, allergies and
+     operations it could not name — which is the wrong way round, because the
+     reader cannot interpret a single number in here without them. It is also
+     the only section that is not about the range: these are facts about a
+     person, and they were true before the range started. */
+  { key: "record", label: "About you", hint: "Conditions, allergies, operations, family history, substances and everyday activities" },
   { key: "summary", label: "How it's been", hint: "The average, the change since last time, and how many days it rests on" },
   { key: "scores", label: "Best, hardest, usual", hint: "The shape of the days behind that average" },
   { key: "flares", label: "Flares", hint: "How many, how long they ran, how bad they got" },
@@ -367,6 +376,9 @@ export interface AppointmentPack {
   range: PackRange;
   previous: { start: string; end: string; days: number };
   sections: Record<PackSectionKey, boolean>;
+  /** The standing record — who this is, before any of the arithmetic. Null
+      when the section is off or the record holds nothing at all. */
+  record: PackRecordSection | null;
   headline: PackHeadline | null;
   scores: PackScores | null;
   flares: PackFlares | null;
@@ -403,6 +415,9 @@ export interface PackInput {
     fasting?: boolean; provider?: string;
   }[];
   sun?: { date: string; minutes: number; iuLow: number; iuHigh: number }[];
+  /** The standing record and what has been said about the parts of it that
+      are empty. Both already sanitised. */
+  record?: { facts?: HealthFact[]; state?: RecordState };
   sections?: Partial<Record<PackSectionKey, boolean>>;
   /** Dates of the notes the person ticked. */
   noteDates?: string[];
@@ -798,6 +813,17 @@ export function buildAppointmentPack(input: PackInput): AppointmentPack {
   const omitted: PackOmission[] = [];
   const want = (k: PackSectionKey) => sections[k] !== false;
 
+  /* Built before anything else so it prints first, and omitted with a reason
+     rather than an empty heading — a blank "Allergies" on a document a
+     clinician reads is a negative nobody stated. */
+  const recordSection = want("record")
+    ? packRecordSection(input.record?.facts || [], input.record?.state, input.today)
+    : null;
+  const record = recordSection && !recordSection.empty ? recordSection : null;
+  if (want("record") && !record) {
+    omitted.push({ key: "record", reason: "Nothing on the record yet — conditions, allergies and operations are what an appointment opens with." });
+  }
+
   const headline = want("summary") ? buildHeadline(input) : null;
   if (want("summary") && !headline) omitted.push({ key: "summary", reason: "Nothing logged in this range yet." });
   if (headline && headline.change == null && headline.average != null) {
@@ -851,6 +877,7 @@ export function buildAppointmentPack(input: PackInput): AppointmentPack {
     range: input.range,
     previous: previousWindow(input.range),
     sections,
+    record,
     headline, scores, flares, changes, labs, sun, routine, photo, notes, questions,
     omitted,
   };

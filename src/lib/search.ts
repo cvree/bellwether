@@ -47,6 +47,10 @@ import type {
 import type { HealthEpisode } from "./episodes";
 import type { Experiment } from "./experiments";
 import type { LabResult } from "./labs";
+import {
+  DOMAIN_META, DOMAIN_OF, KIND_META, factDetail, factLine,
+  type HealthFact,
+} from "./record";
 import type { Ritual, RitualRun } from "./rituals";
 import type { SunSession } from "./sun";
 import { bristolLabel, mealLabel, prettyTime } from "./tracking";
@@ -64,6 +68,7 @@ export type SearchKind =
   | "episode" // a flare
   | "lab" // a result somebody else measured
   | "experiment"
+  | "fact" // one thing on the standing record
   | "sun" // time outside
   | "question" // one of the questions this journal asks
   | "place"; // a screen, or something that lives on one
@@ -72,7 +77,7 @@ export type SearchKind =
     of record first, then the two kinds that are not records at all. */
 export const KIND_ORDER: SearchKind[] = [
   "day", "food", "dose", "bowel", "ritual", "episode", "lab", "sun",
-  "experiment", "item", "question", "place",
+  "experiment", "item", "fact", "question", "place",
 ];
 
 export const KIND_LABEL: Record<SearchKind, string> = {
@@ -85,6 +90,7 @@ export const KIND_LABEL: Record<SearchKind, string> = {
   episode: "Flares",
   lab: "Labs",
   experiment: "Experiments",
+  fact: "About you",
   sun: "Sun",
   question: "Questions",
   place: "Screens",
@@ -101,6 +107,7 @@ export const KIND_ONE: Record<SearchKind, string> = {
   episode: "Flare",
   lab: "Lab result",
   experiment: "Experiment",
+  fact: "About you",
   sun: "Time outside",
   question: "Question",
   place: "Screen",
@@ -112,6 +119,7 @@ export const KIND_ICON: Record<SearchKind, string> = {
   bowel: "bowel",
   dose: "pill",
   item: "clock",
+  fact: "person",
   ritual: "drop",
   episode: "spark",
   lab: "tube",
@@ -192,6 +200,8 @@ const KIND_WORDS: Record<string, SearchKind> = {
   ritual: "ritual", rituals: "ritual",
   episode: "episode", flare: "episode", flares: "episode",
   lab: "lab", labs: "lab", result: "lab", bloods: "lab",
+  fact: "fact", about: "fact", history: "fact", allergy: "fact", allergies: "fact",
+  condition: "fact", conditions: "fact", diagnosis: "fact",
   experiment: "experiment", experiments: "experiment",
   sun: "sun", light: "sun", outside: "sun",
   question: "question", questions: "question", field: "question",
@@ -372,6 +382,11 @@ export interface SearchSource {
   ritualRuns?: RitualRun[];
   episodes?: HealthEpisode[];
   labs?: LabResult[];
+  /** The standing record. Private facts are indexed like everything else —
+      search is the person looking through their own journal on their own
+      device, not an outbound path. `shareable()` guards the pack and the
+      export; it has no business here. */
+  record?: HealthFact[];
   experiments?: Experiment[];
   sun?: SunSession[];
   /** False in the read-only viewer, which must not offer what it cannot do. */
@@ -402,6 +417,7 @@ export const PLACES: Place[] = [
   { id: "p_rituals", title: "Rituals", subtitle: "Your routines, step by step", extra: "shower wind down morning steps checklist", screen: "rituals", viewer: false },
   { id: "p_sun", title: "Sun & outdoor light", subtitle: "Time outside and vitamin D", extra: "uv daylight sunlight vitamin d outdoors", screen: "sun", viewer: true },
   { id: "p_labs", title: "Labs & measurements", subtitle: "Blood work and anything somebody else measured", extra: "blood test result ferritin vitamin thyroid range reference", screen: "labs", viewer: true },
+  { id: "p_record", title: "About you", subtitle: "Conditions, allergies, operations, people, housing — the standing record", extra: "medical history allergy allergies diagnosis condition surgery operation hospital family substance alcohol smoking stress coping trauma support housing work money hobbies biopsychosocial", screen: "record", viewer: true },
   { id: "p_experiments", title: "Experiments", subtitle: "Change one thing, watch what moves", extra: "trial test compare before after ab", screen: "experiments", viewer: true },
   { id: "p_gallery", title: "Photo progress", subtitle: "Progress shots side by side", extra: "photos pictures camera compare baseline", screen: "gallery", viewer: true },
   { id: "p_export", title: "Export", subtitle: "Spreadsheets, backups and appointment packs", extra: "csv xlsx excel backup restore download doctor appointment pack pdf print", screen: "export", viewer: true },
@@ -620,6 +636,27 @@ export function buildIndex(src: SearchSource): SearchDoc[] {
       text: clean(lab.note) || undefined,
       extra: `${clean(lab.test)} blood test result ${clean(lab.unit)}`,
       target: { screen: "labs", id: lab.id, date: lab.date },
+    });
+  }
+
+  /* ---- the standing record ---- */
+  for (const f of src.record || []) {
+    if (!f?.id) continue;
+    const meta = KIND_META[f.kind];
+    if (!meta) continue;
+    docs.push({
+      id: `fact_${f.id}`,
+      kind: "fact",
+      /* Deliberately no `date`. A fact with a partial `since` is not a thing
+         that happened on a day, and letting "2019" into a date field would put
+         it in the results for `2019-01-01` and inside every range filter that
+         crosses new year. */
+      title: clean(factLine(f)),
+      subtitle: joined(meta.one, clean(factDetail(f))),
+      text: clean(f.note) || undefined,
+      extra: `${clean(meta.label)} ${DOMAIN_META[DOMAIN_OF[f.kind]].label} about you history ${
+        f.private ? "private" : ""}`,
+      target: { screen: "record", id: f.id },
     });
   }
 

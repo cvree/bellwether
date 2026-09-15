@@ -15,6 +15,18 @@ entries and notes *on the dates and times your own notes give*. Months of shorth
 sentences of prose — become a journal in about a minute, and you approve every single row before
 one word of it is written.
 
+**And it knows who you are, not just how you have been.** A journal of days can
+say the second week of March was the worst since January. It cannot say that you
+have coeliac disease, go into anaphylaxis on penicillin, had your appendix out
+in 2015, lost your father in March, work nights, and live on a third floor with
+no lift — and every one of those is a question an appointment opens with.
+[**About you**](#about-you) holds them: sixteen kinds of standing fact across
+**Body**, **Mind** and **Life**, which between them are a biopsychosocial
+history, printed at the top of every appointment pack above all the arithmetic.
+Every section can be answered *Nothing to add* in one tap, which is a real
+answer stored with the day you gave it — because "no known allergies" is a
+sentence a clinician can rely on and a blank space is not.
+
 **And once it is a year deep, you can open a drawer of it.** [**Search**](#search) is one box
 over every note, meal, dose, bowel entry, ritual, flare, lab result and hour outside — plus the
 questions your survey asks and the screens themselves. It answers on the first keystroke, every
@@ -683,6 +695,63 @@ working instead: usable observations, days missing one side, the comparison wind
 were split, consistency, the lag used, and the limitations — including the three that are true of
 every finding this app can ever make.
 
+<a id="about-you"></a>
+
+**About you — the standing record.** Every other collection in this app is a diary: one row per
+day, or meal, or dose, ordered by when it happened. That is the wrong shape for the facts an
+appointment actually opens with, because none of them is a day. A coeliac diagnosis is not a thing
+that happened on a Tuesday; it is a thing that has been true since roughly 2019, and the *roughly*
+matters.
+
+So there is one more collection, and it holds **sixteen kinds of standing fact across three
+domains** — which between them are a biopsychosocial history:
+
+- **Body** — conditions (physical and mental, on one list), allergies and what they actually do,
+  operations and hospital stays, past courses of treatment, family history, alcohol and tobacco and
+  anything else, and the everyday activities that need an aid, an adaptation or a hand.
+- **Mind** — what is currently weighing on you, what you reach for when it does (including the
+  things you would rather not be reaching for, recorded without comment), and significant life
+  events.
+- **Life** — who is actually around, where and how you live, work and study, background and belief
+  where it touches your care, money and anything legal that is running, and what you do purely
+  because you enjoy it.
+
+They are one list rather than three, deliberately. A depression diagnosis is a condition on the
+same list as asthma; a psychiatric admission is an operation on the same list as an appendectomy;
+an antidepressant sits in your routine beside a moisturiser. Splitting the mental facts onto their
+own screen is a clinical error before it is a discourtesy.
+
+**"Nothing to add" is an answer, and it is not the same as a blank.** *No known drug allergies* is
+a statement with an author and a date that a clinician can rely on. *Nobody ever asked* is a
+statement about nothing. So every one of the sixteen can be answered in one tap, stored with the
+day you gave it, and the pack then prints three different things where it used to print one: a
+section with facts prints them; a section you said was empty prints its sentence **with the date
+you said it**; and a section nobody has asked you about is left out and *named as not asked* —
+absence there means the question is unanswered, never that the answer is no.
+
+**Sixteen sections is a form, and nobody fills in a form.** So the screen opens on three cards, not
+sixteen headings; every empty section carries its question in plain words with *Nothing to add*
+under it; and **Run through what's left** takes the unanswered ones one at a time with a deck of
+one-tap answers and three ways off every screen. Twelve outstanding sections take about ninety
+seconds. There is no ring filling up and no percentage anywhere: somebody with nothing to say about
+their family history has a complete record, not an 81% one.
+
+**A year is a date, if a year is what you have.** `2019`, `2019-03` and `2019-03-14` are all
+accepted, kept at the precision you gave and printed at it, and the field says back how it read
+you. A picker demanding a day manufactures a precision you do not have and your clinician will not
+believe — and it is quietly why half of these records never get written down at all.
+
+**Anything can be marked private.** Held in your journal; in no appointment pack, no export and
+nothing shown to a model. Your backups and your own sync still carry it, because a backup is your
+journal rather than a copy made to hand to somebody. A significant life event starts private and
+everything else starts not — a default, not a rule, and one tap either way.
+
+**And a severe allergy is printed in a box.** Anything you mark as severe or anaphylactic, and
+anything you pin yourself, prints in a bordered box above everything else on the page, in black
+because packs get printed in mono. It is the only heavy rule in the document and it is heavy for
+one reason: the person reading it may be about to hand you a medicine. Severity is what you were
+told — the app never infers it from the words you used to describe a reaction.
+
 **Labs & measurements.** Vitamin D, ferritin, HbA1c, TSH, B12, cholesterol, blood pressure,
 weight, or anything at all with a name and a number. Each result keeps its value, unit, date and
 time, **the reference range your laboratory printed**, fasting status, provider, a note and a
@@ -1298,7 +1367,9 @@ bellwether/
 │   │                           #   rail (the one horizontal scroller),
 │   │                           #   search (one box over the whole journal),
 │   │                           #   rituals (the day's card, the step player,
-│   │                           #     the weekly tune-up, the manage screen)
+│   │                           #     the weekly tune-up, the manage screen),
+│   │                           #   record (about you — three domain cards, the
+│   │                           #     sixteen sections, the run-through)
 │   ├── lib/
 │   │   ├── theme.ts            # design tokens, dark/light/night, hue derivation,
 │   │   │                       #   contrast solving
@@ -1312,6 +1383,9 @@ bellwether/
 │   │   ├── heatmap.ts          # the 12-month year grid, summaries and colour ramp
 │   │   ├── distribution.ts     # days per score, the three middles, hard/calm counts
 │   │   ├── episodes.ts         # the flare model + every number one can be asked for
+│   │   ├── record.ts           # the standing record: sixteen kinds of fact across
+│   │   │                       #   body/mind/life, partial dates, "nothing to add"
+│   │   │                       #   as a dated statement, the private gate
 │   │   ├── appointmentPack.ts  # the printable summary: figures, floors, what it refuses
 │   │   ├── intro.ts            # the first-run choreography (hero, FLIP, timeline draw)
 │   │   ├── aims.ts             # what somebody came to find out, what each aim

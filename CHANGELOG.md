@@ -1,5 +1,214 @@
 # Changelog
 
+## 1.39.0
+
+The first three questions of any appointment, which this journal could not
+answer.
+
+### A hundred and twenty days of detail about somebody it could not name
+
+Ask what Bellwether knew, before this release, and the answer was remarkable in
+one direction and empty in the other. It could tell you the second week of
+March was the worst since January, how many hours were booked that week, what
+the pressure did, what was eaten, what was taken, what the ferritin was and how
+much daylight there had been.
+
+It could not tell you that this person has coeliac disease, goes into
+anaphylaxis on penicillin, had their appendix out in 2015, lost their father in
+March, works nights, and lives on a third floor with no lift.
+
+Every one of those is the kind of fact a consultation opens with. None of them
+is a *day*, which is why none of them could exist here: every collection in
+this app until now has been a diary, one row per thing that happened, ordered
+by when it happened. A diagnosis is not a thing that happened on a day. It is a
+thing that has been true since roughly 2019, and the "roughly" is load-bearing.
+
+So: **the standing record.** One new collection, sixteen kinds of fact, three
+domains — **Body**, **Mind**, **Life** — which between them are a
+biopsychosocial history, and which print at the top of every appointment pack
+above all the arithmetic, because none of the arithmetic can be read without
+them.
+
+### The three domains, and why they are one list
+
+**Body** — conditions, allergies and what they do, operations and hospital
+stays, past courses of treatment, family history, alcohol and tobacco and
+anything else, and the everyday activities that need an aid or a hand.
+
+**Mind** — what is currently weighing, what gets reached for when it does
+(including the things somebody would rather not be reaching for, which are
+recorded without comment), and significant life events.
+
+**Life** — who is actually around, where and how somebody lives, work and
+study, background and belief where it touches care, money and anything legal
+that is running, and what is done purely for enjoyment.
+
+The last of those is not filler. Losing the things you do for their own sake is
+often the first sign, and getting them back is what better actually looks like —
+and no chart in this app has ever had anywhere to put that.
+
+And they are **one list, not three**, which is the decision everything else
+follows from. A depression diagnosis is a `condition`, on the same list as
+asthma. A psychiatric admission is a `procedure`, on the same list as an
+appendectomy. An antidepressant is in the routine, beside a moisturiser.
+Quarantining the mental facts into their own screen is a clinical error before
+it is a discourtesy: the whole argument of a biopsychosocial history is that
+this is one record about one person.
+
+### "No known allergies" is a sentence. A blank space is not.
+
+The load-bearing rule, and the reason this is more than a notes field.
+
+*No known drug allergies* is a clinical statement. It has an author and a date
+and it can be relied on. *Nobody ever asked* is a statement about nothing at
+all. An app that prints an empty allergy heading for both has told the reader
+something false about one of them — and it is the single most dangerous blank
+space this app could put on paper.
+
+So every one of the sixteen can be answered with **Nothing to add**, which is a
+real answer, stored with the day it was given. The pack then prints three
+different things where it used to print one:
+
+- a kind with facts in it prints them;
+- a kind stated empty prints its sentence, *with the date it was said* — "No
+  known allergies. Stated 14 March 2026";
+- a kind nobody has been asked about is **left out and named as not asked**, in
+  a line that says absence here means the question is unanswered, not that the
+  answer is no.
+
+The same distinction survives into the spreadsheet, where a stated negative
+gets its own row rather than being lost as an absence.
+
+### Sixteen sections is a form, and nobody fills in a form
+
+Which is the real design problem, and it gets three answers.
+
+**The unit is a domain, not a section.** The screen opens on three cards, not
+sixteen headings. "Four of seven answered" is something a person can act on;
+"twelve of sixteen sections incomplete" is a scolding.
+
+**Every section can be finished without typing.** The question is there in
+plain words — *Do you react to any medicine, food or anything else?* — with two
+buttons under it, and one of them is Nothing to add.
+
+**And there is a way through it that is not the screen at all.** *Run through
+what's left* takes the unanswered kinds one at a time: the question, a deck of
+one-tap answers drawn from what people actually reach for, and three ways off
+every screen — add what you picked, say there is nothing, or skip and be asked
+another time. Twelve outstanding sections become about ninety seconds.
+
+There is no ring filling up, no percentage, and no green tick on the third
+card. Somebody with nothing to say about their family history has a complete
+record, not an 81% one.
+
+### The date is a year, if a year is what you have
+
+Nobody remembers the day they were diagnosed. `2019`, `2019-03` and
+`2019-03-14` are all accepted, kept at whatever precision they were given, and
+printed at it — and the field says back how it read them, because "2019" ought
+not to have to be typed twice to find out.
+
+A picker that demands a day manufactures a precision the person does not have
+and the clinician will not believe. It is also, quietly, the reason half of
+these records never get written down at all.
+
+### The switch that had to exist before the life events did
+
+The moment a journal accepts *significant life events* it is holding the most
+sensitive sentence anybody will ever type into it — a bereavement, an
+upheaval, harm done to them. And the default behaviour of every other
+collection in this app is: goes in the pack, goes in the spreadsheet.
+
+That default is wrong here. A pack is a document that gets left on a desk.
+
+So **private** is a switch on every fact of every kind. A private fact is held
+in the journal and reaches no pack, no export and no model — `shareable()` is
+the single gate every outbound path runs through, and the tests assert it from
+the other side: a severe allergy marked private does not reach the pack's alert
+band either, because "it was important" is not a reason to override somebody.
+
+A backup still carries everything, because a backup *is* the journal rather
+than a copy made to hand to somebody, and a restore that silently lost the
+sensitive half would be the worst possible way to learn that difference. So
+does sync: the other device is the same person's.
+
+A life event starts private and everything else starts not. That is a default,
+not a rule — the switch is visible and one tap either way — and it is the least
+harmful error in each direction.
+
+### The one place the pack raises its voice
+
+A severe allergy, and anything deliberately pinned, prints in a bordered box
+above everything else on the page, in black rather than a colour because this
+gets printed in mono. It is the only heavy rule in the document, and it is
+heavy for one reason: the reader may be about to hand somebody a medicine.
+
+Severity is what the person was told. It is never inferred from the words in a
+reaction — reading "throat closes" and promoting it to anaphylaxis would be
+this app making a clinical judgement, which it has no standing to make, and a
+test pins that it does not.
+
+### Everywhere else it turns up
+
+**Search** indexes every fact — by name, by what a reaction does, by the
+section it is in — and opens it where it lives. Private facts are indexed like
+everything else: search is the person looking through their own journal on
+their own device, which is the one place an outbound gate has no business.
+Facts carry no date, on purpose: a `since` of "2019" is not a thing that
+happened on a day, and letting it into the date field would drop a diagnosis
+into every range filter that crosses a new year.
+
+**Export** gains an About you sheet with no date range on it, because these are
+facts about a person rather than rows that happened in a window — filtering a
+2019 diagnosis out of a spreadsheet covering last month would be the export
+losing the point.
+
+**Sync** carries facts as their own record kind, merged and tombstoned like
+every other row, settling a two-device edit on the later one.
+
+**Settings** has a card for it, because Settings is where somebody goes to ask
+what this app knows about them, and the honest answer has two halves: the days,
+and the things that were true before the days started.
+
+### Under it
+
+- **`src/lib/record.ts` — pure, and the whole feature.** `HealthFact` (one
+  shape, sixteen kinds, per-kind optional fields), `RecordState` (what has been
+  *asked*, which is a different collection from what is true), partial dates
+  with a real calendar check — `2019-02-30` is a typo, not a lower-precision
+  date — sanitisers that repair on every load rather than trust on any,
+  `shareable()`, `alertFacts()`, one renderer used by the screen and the pack
+  and the export alike so three surfaces cannot describe the same fact three
+  ways, `packRecordSection()` and `buildRecordTable()`.
+- **`src/components/RecordScreen.tsx`** — the three domain cards, the sixteen
+  sections, the run-through, and an editor that shows only the fields the kind
+  actually has.
+- **Wiring:** one db slice (`record`), one profile field (`profile.record`),
+  both sanitised in `migrateDb` — and the state is sanitised *against* the
+  facts, so a file claiming both "no allergies" and one allergy is repaired
+  with the typed fact winning. New `fact` sync kind, new `record` screen, a
+  History door, a Settings card, a search place and a `person` icon.
+- **Gotchas.**
+  1. **`newFact` must not run through `sanitizeFact`.** A draft legitimately
+     has an empty label until somebody types one, and the sanitiser correctly
+     rejects a fact with no label — so the fallback opened every fresh editor
+     with the word "Condition" already in the name box. The sanitiser's place
+     is the storage boundary, not the constructor.
+  2. **A status a kind does not offer is dropped, never translated.** Guessing
+     that a "former" condition meant "resolved" would be the module inventing a
+     clinical statement out of a malformed field.
+  3. **`packRecordSection` computes `missing` from the shareable set too.** A
+     kind holding only private facts reads as *not asked* on the pack, which is
+     the honest thing for a document that is not being shown them to say.
+  4. **A stated negative and its date are cleared together.** A date with no
+     statement attached is a fact about nothing.
+- **Tests: 95 new across 2 new suites and 4 existing** — `record` (46),
+  `recordUi` (27), plus `appointmentPack` (7), `backupCompat` (3), `syncMerge`
+  (5) and `search` (7). As with the calendar, the assertions that matter are
+  the negative ones: no private fact reaches a pack, an export or an alert
+  band; no unasked kind is ever printed as a negative. **Totals: 2,250 across
+  84 suites** (was 2,155/82).
+
 ## 1.38.0
 
 Your calendar is the only record most people keep of what they agreed to. This

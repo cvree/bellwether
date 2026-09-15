@@ -392,3 +392,76 @@ describe("folding remote changes back into the journal", () => {
     expect(again.map(key).sort()).toEqual(recs.map(key).sort());
   });
 });
+
+/* ---------- the standing record crosses too ----------
+
+   The 1.21 collections shipped without a seam into this file and stayed on
+   whichever device created them for two releases. This is the guard that stops
+   the standing record going the same way — and the second assertion is the one
+   that matters: sync carries the private facts, because sync is this journal
+   on the same person's other device, not a copy handed to anybody. */
+describe("the standing record", () => {
+  const withRecord = () => ({
+    ...sampleDb(),
+    record: [
+      {
+        id: "f_coeliac", kind: "condition", label: "Coeliac disease", since: "2019",
+        createdAt: "2026-03-01T09:00:00.000Z", updatedAt: "2026-03-01T09:00:00.000Z",
+      },
+      {
+        id: "f_loss", kind: "event", label: "Bereavement", private: true,
+        createdAt: "2026-03-01T09:00:00.000Z", updatedAt: "2026-03-02T09:00:00.000Z",
+      },
+    ],
+  });
+
+  it("projects every fact as its own row, identified by its own id", () => {
+    const recs = projectDb(withRecord(), "d1").filter((r) => r.kind === "fact");
+    expect(recs.map((r) => r.id).sort()).toEqual(["f_coeliac", "f_loss"]);
+    expect(syncIdOf("fact", { id: "f_coeliac" })).toBe("f_coeliac");
+  });
+
+  it("carries a private fact, because the other device is the same person's", () => {
+    const recs = projectDb(withRecord(), "d1").filter((r) => r.kind === "fact");
+    const loss = recs.find((r) => r.id === "f_loss")!;
+    expect((loss.payload as any).private).toBe(true);
+  });
+
+  it("lands on the other device under the same key", () => {
+    const recs = projectDb(withRecord(), "d1");
+    const fresh: any = { ...sampleDb(), record: [] };
+    const applied = applyRecords(fresh, recs);
+    expect(applied.db.record).toHaveLength(2);
+  });
+
+  it("lets a deletion on one device remove it on the other", () => {
+    /* Mirrors what the app does: drop the row *and* record the tombstone.
+       A tombstone beside a live row is not a deletion, and projecting one
+       would emit the row that is still there. */
+    const db: any = withRecord();
+    const deleted = addTombstone(
+      { ...db, record: db.record.filter((f: any) => f.id !== "f_loss") },
+      "fact", "f_loss", "d1",
+    );
+    const recs = projectDb(deleted, "d1").filter((r) => r.kind === "fact");
+    const tomb = recs.find((r) => r.id === "f_loss")!;
+    expect(tomb.deleted).toBe(true);
+    expect(tomb.payload).toBeNull();
+
+    /* And the other device honours it. */
+    const other: any = withRecord();
+    expect(applyRecords(other, recs).db.record.map((f: any) => f.id)).toEqual(["f_coeliac"]);
+  });
+
+  it("settles a two-device edit of the same fact on the later one", () => {
+    const mine: any = withRecord();
+    const later = {
+      ...mine.record[0], label: "Coeliac disease (biopsy confirmed)",
+      updatedAt: "2026-04-01T09:00:00.000Z",
+    };
+    const incoming = projectDb({ ...mine, record: [later, mine.record[1]] }, "d2");
+    const applied = applyRecords(mine, incoming);
+    const row = applied.db.record.find((f: any) => f.id === "f_coeliac");
+    expect(row.label).toBe("Coeliac disease (biopsy confirmed)");
+  });
+});
